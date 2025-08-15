@@ -5,4 +5,3 @@ pandas==2.0.3
 nltk==3.8.1
 pillow==10.2.0
 pytesseract==0.3.10
-# Do NOT put apt-get, tesseract-ocr here!
