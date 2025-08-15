@@ -122,3 +122,4 @@ def fake_review_detector(text):
 if __name__ == '__main__':
     train_model()
 #.\krish\Scripts\Activate.ps1 to activate the venv
+#pip install -r backend/requirements.txt
