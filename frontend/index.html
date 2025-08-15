@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fake Review Identifier</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center">
+
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-4 text-center">🕵 Fake Review Identification System</h1>
+        <p class="text-gray-500 text-center mb-6">Paste or upload a review to check authenticity.</p>
+
+        <form id="reviewForm" enctype="multipart/form-data" class="space-y-4">
+            <textarea id="reviewInput" rows="4"
+                class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
+                placeholder="Paste or type a review here..."></textarea>
+
+            <label class="block text-gray-600 font-medium">Upload an image (optional):</label>
+            <input type="file" id="photoInput" accept="image/*"
+                class="block w-full text-gray-500 border border-gray-300 p-2 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition" />
+
+            <button id="analyzeBtn"
+                class="mt-4 w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                🔍 Analyze Review
+            </button>
+        </form>
+
+        <!-- Stylish result output structure below;
+             This is dynamically filled by script.js. Do not remove the classes! -->
+        <div id="result"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

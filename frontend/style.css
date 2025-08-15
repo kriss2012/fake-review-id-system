@@ -1,0 +1,143 @@
+/* General body animation */
+body {
+    animation: fadeIn 0.8s ease-in-out;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Smooth fade-in container */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Better placeholder color */
+textarea::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* File input hover effect */
+input[type="file"]:hover {
+    border-color: #6366f1;
+}
+
+/* Button hover effects */
+button#analyzeBtn {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+button#analyzeBtn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+    cursor: pointer;
+}
+
+/* Result area styling */
+#result {
+    display: none;         
+    background: linear-gradient(90deg, #e0e7ff 0%, #f0fdf4 100%);
+    padding: 28px 24px 22px 24px;
+    border-radius: 18px;
+    margin-top: 28px;
+    box-shadow: 0 8px 28px rgba(59, 130, 246, 0.12), 0 1.5px 4px rgba(16, 185, 129, 0.08);
+    text-align: center;
+    border: 2px solid #a5b4fc;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #334155;
+    transition: box-shadow 0.3s, border 0.3s, background 0.3s;
+    animation: popIn 0.6s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    user-select: text;
+    line-height: 1.4;
+}
+
+/* Show result smoothly */
+.show-result {
+    display: block;
+    animation: popIn 0.5s ease-in-out forwards;
+}
+
+/* Pop-in animation */
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Result label styles for verdict */
+.result-label {
+    display: inline-block;
+    font-size: 1.35rem;
+    font-weight: 700;
+    padding: 8px 20px 8px 24px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+}
+.result-fake {
+    background: linear-gradient(90deg,#fee2e2,#fca5a5 80%);
+    color: #b91c1c;
+}
+.result-genuine {
+    background: linear-gradient(90deg,#d1fae5,#6ee7b7 80%);
+    color: #065f46;
+}
+.result-info {
+    background: linear-gradient(90deg,#e0e7ff,#bae6fd 80%);
+    color: #2563eb;
+}
+
+/* Model confidence styling */
+.confidence-label {
+    display: block;
+    font-size: 1.08rem;
+    font-weight: 600;
+    margin-top: 7px;
+    color: #334155;
+    letter-spacing: 0.02em;
+}
+.confidence-bar {
+    margin: 14px auto 6px auto;
+    width: 65%;
+    height: 8px;
+    background: linear-gradient(90deg, #6366f1 55%, #10b981 100%);
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+}
+.confidence-progress {
+    height: 100%;
+    background-color: #6366f1;
+    border-radius: 5px;
+    transition: width 0.6s;
+    position: absolute;
+    top: 0; left: 0;
+}
+
+/* Success (genuine review) */
+#result.success {
+    background-color: #d1fae5;
+    border-color: #10b981;
+    color: #065f46;
+}
+
+/* Info/neutral */
+#result.info {
+    background-color: #bfdbfe;
+    border-color: #3b82f6;
+    color: #1e40af;
+}
+
+/* Error (fake review) */
+#result.error {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+/* Responsive for mobile */
+@media (max-width: 600px) {
+    #result { padding: 18px 7px 12px 7px; font-size: 1rem; }
+    .result-label { font-size: 1.05rem; }
+    .confidence-label { font-size: 1rem; }
+}
