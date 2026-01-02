@@ -1,33 +1,33 @@
 import pickle
 import os
 import re
+import sys
+import logging
+
+# Setup Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# NLTK Setup
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
-# --- NLTK Setup (Fail-safe) ---
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
-    try:
-        nltk.download('stopwords', quiet=True)
-    except:
-        pass 
-
+    nltk.download('stopwords', quiet=True)
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    try:
-        nltk.download('punkt', quiet=True)
-    except:
-        pass
+    nltk.download('punkt', quiet=True)
 
 MODEL_FILE = 'model.pkl'
 model_pipeline = None
 
 def preprocess_text(text):
     """
-    Must match exactly how you cleaned text during training.
+    Cleaning logic matching training data
     """
     ps = PorterStemmer()
     review = re.sub('[^a-zA-Z]', ' ', str(text))
@@ -35,50 +35,55 @@ def preprocess_text(text):
     review = review.split()
     
     try:
-        # Try using NLTK stopwords
         STOPWORDS = set(stopwords.words('english'))
         review = [ps.stem(word) for word in review if not word in STOPWORDS]
     except:
-        # Fallback if NLTK failed (just stem, don't remove stopwords)
         review = [ps.stem(word) for word in review]
         
     review = ' '.join(review)
     return review
 
+def load_model_safe():
+    global model_pipeline
+    if model_pipeline is not None:
+        return True, "Loaded"
+
+    if not os.path.exists(MODEL_FILE):
+        return False, "model.pkl not found in repository"
+
+    try:
+        with open(MODEL_FILE, 'rb') as f:
+            model_pipeline = pickle.load(f)
+        return True, "Loaded"
+    except Exception as e:
+        logger.error(f"Model Load Failed: {e}")
+        return False, str(e)
+
 def predict_review(review_text):
     """
-    Loads model ON DEMAND (Lazy Loading) to prevent server crash on startup.
+    Safe prediction function
     """
-    global model_pipeline
+    # 1. Try to load model
+    success, message = load_model_safe()
     
-    # 1. Lazy Load the Model
-    if model_pipeline is None:
-        if not os.path.exists(MODEL_FILE):
-            return "Error: 'model.pkl' not found in repository."
-        
-        try:
-            print(f"Attempting to load {MODEL_FILE}...")
-            with open(MODEL_FILE, 'rb') as f:
-                model_pipeline = pickle.load(f)
-            print("Model loaded successfully!")
-        except Exception as e:
-            return f"Model Error: {str(e)} (Check scikit-learn version mismatch)"
+    if not success:
+        return f"System Error: Could not load AI Model. Details: {message}"
 
-    # 2. Validate Input
     if not review_text:
         return "Invalid Input"
 
-    # 3. Predict
+    # 2. Predict
     try:
         clean_text = preprocess_text(review_text)
         prediction = model_pipeline.predict([clean_text])
         res = prediction[0]
         
-        # Check result type (handles both string 'OR'/'CG' and int 0/1)
-        if str(res) in ['0', 'OR', 'Original']:
+        # Handle different output types from the model
+        if str(res) in ['0', 'OR', 'Original', 0]:
             return "Original Review"
         else:
             return "Computer Generated (Fake) Review"
             
     except Exception as e:
+        logger.error(f"Prediction Error: {e}")
         return f"Prediction Error: {str(e)}"
