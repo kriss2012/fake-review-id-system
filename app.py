@@ -14,7 +14,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import DB and Model
 from models import db, User, Payment
-# THIS IMPORT WAS CAUSING THE ISSUE BEFORE - IT IS FIXED NOW
 from model import predict_review
 
 # --- SETUP LOGGING ---
@@ -82,6 +81,7 @@ def index():
 
 @app.route('/login')
 def login():
+    # Force _external=True to get https:// on Render
     redirect_uri = url_for('authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
@@ -89,8 +89,13 @@ def login():
 def authorize():
     try:
         token = google.authorize_access_token()
-        user_info = google.get('userinfo').json()
         
+        # --- FIX IS HERE: USE FULL URL ---
+        # The shortcut 'userinfo' often fails. We use the full API URL.
+        resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        user_info = resp.json()
+        
+        # Database Logic
         user = User.query.filter_by(google_id=user_info['id']).first()
         
         if not user:
@@ -105,9 +110,11 @@ def authorize():
         
         login_user(user)
         return redirect(url_for('index'))
+    
     except Exception as e:
         logger.error(f"Auth Error: {e}")
-        return redirect(url_for('index'))
+        # PRINT ERROR TO SCREEN SO WE CAN SEE IT
+        return f"<h3>Login Failed</h3><p>Error details: {str(e)}</p><a href='/'>Go Back</a>"
 
 @app.route('/logout')
 @login_required
@@ -157,6 +164,22 @@ def verify_payment():
         )
         db.session.add(payment)
         db.session.commit()
+        
+        # Simple email send (no blocking)
+        if MAIL_USERNAME and MAIL_PASSWORD:
+            try:
+                msg = MIMEMultipart()
+                msg['From'] = MAIL_USERNAME
+                msg['To'] = current_user.email
+                msg['Subject'] = "Subscription Confirmed"
+                msg.attach(MIMEText("Welcome to Premium!", 'plain'))
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(MAIL_USERNAME, MAIL_PASSWORD)
+                server.sendmail(MAIL_USERNAME, current_user.email, msg.as_string())
+                server.quit()
+            except: pass
+
         return jsonify({'status': 'success'})
     except Exception as e:
         logger.error(f"Payment Verify Error: {e}")
@@ -166,7 +189,6 @@ def verify_payment():
 @login_required
 def predict():
     review_text = ""
-    
     try:
         if 'text_input' in request.form and request.form['text_input'].strip():
             review_text = request.form['text_input']
@@ -183,7 +205,6 @@ def predict():
         if not review_text.strip():
             return jsonify({'error': 'No text extracted.'}), 400
 
-        # Run Prediction (Safe Call)
         prediction = predict_review(review_text)
         
         return jsonify({
@@ -209,7 +230,7 @@ with app.app_context():
         db.create_all()
         logger.info("Database tables created.")
     except Exception as e:
-        logger.error(f"Database creation failed (Check DATABASE_URL): {e}")
+        logger.error(f"Database creation failed: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True)
