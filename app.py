@@ -60,16 +60,14 @@ def load_user(user_id):
         return None
 
 oauth = OAuth(app)
+
+# --- GOOGLE OAUTH CONFIGURATION (THE FIX) ---
+# We removed manual URLs. 'server_metadata_url' handles EVERYTHING automatically.
 google = oauth.register(
     name='google',
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
     client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    access_token_params=None,
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    authorize_params=None,
-    api_base_url='https://www.googleapis.com/oauth2/v1/',
-    userinfo_endpoint='https://www.googleapis.com/oauth2/v1/userinfo',
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'},
 )
 
@@ -88,22 +86,33 @@ def login():
 @app.route('/authorize')
 def authorize():
     try:
+        # 1. Get the Token
         token = google.authorize_access_token()
         
-        # --- FIX IS HERE: USE FULL URL ---
-        # The shortcut 'userinfo' often fails. We use the full API URL.
-        resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
-        user_info = resp.json()
+        # 2. Get User Info
+        # Since we used server_metadata_url, we can now use the standard .userinfo() method
+        # or parse the id_token automatically.
+        if 'userinfo' in token:
+            user_info = token['userinfo']
+        else:
+            # Fallback if userinfo isn't inside token
+            user_info = google.userinfo()
         
-        # Database Logic
-        user = User.query.filter_by(google_id=user_info['id']).first()
+        # 3. Database Logic
+        # Google returns 'sub' as the ID in the new flow
+        google_id = user_info.get('sub') or user_info.get('id')
+        email = user_info.get('email')
+        name = user_info.get('name')
+        picture = user_info.get('picture')
+
+        user = User.query.filter_by(google_id=google_id).first()
         
         if not user:
             user = User(
-                google_id=user_info['id'],
-                email=user_info['email'],
-                name=user_info.get('name', 'User'),
-                profile_pic=user_info.get('picture', '')
+                google_id=google_id,
+                email=email,
+                name=name,
+                profile_pic=picture
             )
             db.session.add(user)
             db.session.commit()
@@ -165,7 +174,6 @@ def verify_payment():
         db.session.add(payment)
         db.session.commit()
         
-        # Simple email send (no blocking)
         if MAIL_USERNAME and MAIL_PASSWORD:
             try:
                 msg = MIMEMultipart()
