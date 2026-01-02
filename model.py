@@ -5,19 +5,23 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
-# --- NLTK Setup for Render ---
-# We download these only if missing to speed up boot time
+# --- NLTK Setup (Fail-safe) ---
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
-    nltk.download('stopwords')
+    try:
+        nltk.download('stopwords', quiet=True)
+    except:
+        pass 
 
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    nltk.download('punkt')
+    try:
+        nltk.download('punkt', quiet=True)
+    except:
+        pass
 
-STOPWORDS = set(stopwords.words('english'))
 MODEL_FILE = 'model.pkl'
 model_pipeline = None
 
@@ -26,62 +30,52 @@ def preprocess_text(text):
     Must match exactly how you cleaned text during training.
     """
     ps = PorterStemmer()
-    # Remove non-alphabetic characters and lowercase
     review = re.sub('[^a-zA-Z]', ' ', str(text))
     review = review.lower()
     review = review.split()
-    # Remove stopwords and stem
-    review = [ps.stem(word) for word in review if not word in STOPWORDS]
+    
+    try:
+        # Try using NLTK stopwords
+        STOPWORDS = set(stopwords.words('english'))
+        review = [ps.stem(word) for word in review if not word in STOPWORDS]
+    except:
+        # Fallback if NLTK failed (just stem, don't remove stopwords)
+        review = [ps.stem(word) for word in review]
+        
     review = ' '.join(review)
     return review
 
-def load_model():
+def predict_review(review_text):
     """
-    Strictly loads model.pkl. Does NOT train.
+    Loads model ON DEMAND (Lazy Loading) to prevent server crash on startup.
     """
     global model_pipeline
     
-    if os.path.exists(MODEL_FILE):
-        print(f"Loading {MODEL_FILE}...")
+    # 1. Lazy Load the Model
+    if model_pipeline is None:
+        if not os.path.exists(MODEL_FILE):
+            return "Error: 'model.pkl' not found in repository."
+        
         try:
+            print(f"Attempting to load {MODEL_FILE}...")
             with open(MODEL_FILE, 'rb') as f:
                 model_pipeline = pickle.load(f)
             print("Model loaded successfully!")
         except Exception as e:
-            print(f"ERROR: Could not load {MODEL_FILE}. File might be corrupted.")
-            print(f"Details: {e}")
-            model_pipeline = None
-    else:
-        print("CRITICAL ERROR: 'model.pkl' not found.")
-        print("You explicitly disabled training. Please upload 'model.pkl' to your GitHub repo.")
-        model_pipeline = None
+            return f"Model Error: {str(e)} (Check scikit-learn version mismatch)"
 
-# Load immediately on import
-load_model()
-
-def predict_review(review_text):
-    """
-    Returns the prediction string.
-    """
-    if model_pipeline is None:
-        return "System Error: Model file missing."
-
+    # 2. Validate Input
     if not review_text:
         return "Invalid Input"
 
+    # 3. Predict
     try:
-        # Preprocess using the helper
         clean_text = preprocess_text(review_text)
-        
-        # Predict
-        # Note: The pipeline usually handles vectorization internally
         prediction = model_pipeline.predict([clean_text])
-
-        # Map result (Adjust based on how your specific model was trained)
-        # Assuming 0/1 or 'OR'/'CG' based on your dataset
         res = prediction[0]
         
-        if res == 'OR' or res == 0 or res == '0':
+        # Check result type (handles both string 'OR'/'CG' and int 0/1)
+        if str(res) in ['0', 'OR', 'Original']:
             return "Original Review"
         else:
             return "Computer Generated (Fake) Review"
