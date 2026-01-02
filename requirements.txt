@@ -11,3 +11,4 @@ Authlib
 razorpay
 requests
 python-dotenv
+gunicorn==21.2.0
