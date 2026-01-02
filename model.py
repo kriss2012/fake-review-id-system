@@ -1,33 +1,33 @@
-import pandas as pd
-import numpy as np
 import pickle
 import os
-import nltk
-from nltk.stem.porter import PorterStemmer
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
 
-# Ensure NLTK data is downloaded
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+# --- NLTK Setup for Render ---
+# We download these only if missing to speed up boot time
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
     nltk.download('stopwords')
 
-from nltk.corpus import stopwords
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 STOPWORDS = set(stopwords.words('english'))
 MODEL_FILE = 'model.pkl'
+model_pipeline = None
 
 def preprocess_text(text):
+    """
+    Must match exactly how you cleaned text during training.
+    """
     ps = PorterStemmer()
     # Remove non-alphabetic characters and lowercase
-    review = re.sub('[^a-zA-Z]', ' ', text)
+    review = re.sub('[^a-zA-Z]', ' ', str(text))
     review = review.lower()
     review = review.split()
     # Remove stopwords and stem
@@ -35,56 +35,56 @@ def preprocess_text(text):
     review = ' '.join(review)
     return review
 
-def load_or_train_model():
-    """Loads model if available, else trains it."""
+def load_model():
+    """
+    Strictly loads model.pkl. Does NOT train.
+    """
+    global model_pipeline
+    
     if os.path.exists(MODEL_FILE):
-        print("Loading existing model...")
-        with open(MODEL_FILE, 'rb') as f:
-            pipeline = pickle.load(f)
+        print(f"Loading {MODEL_FILE}...")
+        try:
+            with open(MODEL_FILE, 'rb') as f:
+                model_pipeline = pickle.load(f)
+            print("Model loaded successfully!")
+        except Exception as e:
+            print(f"ERROR: Could not load {MODEL_FILE}. File might be corrupted.")
+            print(f"Details: {e}")
+            model_pipeline = None
     else:
-        print("Training new model...")
-        # Load dataset
-        if not os.path.exists('fake_review_dataset.csv'):
-             raise FileNotFoundError("fake_review_dataset.csv not found. Please upload the dataset.")
-             
-        df = pd.read_csv('fake_review_dataset.csv')
-        
-        # Preprocess dataset
-        # Using a temporary corpus list for TFIDF fit
-        corpus = df['text_'].apply(preprocess_text).tolist()
-        y = df['label']
+        print("CRITICAL ERROR: 'model.pkl' not found.")
+        print("You explicitly disabled training. Please upload 'model.pkl' to your GitHub repo.")
+        model_pipeline = None
 
-        # Create a pipeline with TF-IDF and Naive Bayes
-        pipeline = Pipeline([
-            ('tfidf', TfidfVectorizer(max_features=5000, ngram_range=(1,3))),
-            ('clf', MultinomialNB())
-        ])
-
-        # Train the pipeline
-        pipeline.fit(corpus, y)
-
-        # Save the trained pipeline
-        with open(MODEL_FILE, 'wb') as f:
-            pickle.dump(pipeline, f)
-            print("Model trained and saved.")
-            
-    return pipeline
-
-# Initialize model once when app starts
-classifier_pipeline = load_or_train_model()
+# Load immediately on import
+load_model()
 
 def predict_review(review_text):
     """
-    Predicts whether a given review is Real or Fake.
+    Returns the prediction string.
     """
-    if not review_text or not isinstance(review_text, str):
-         return "Invalid Input"
-         
-    preprocessed_review = preprocess_text(review_text)
-    # Pipeline handles vectorization automatically
-    prediction = classifier_pipeline.predict([preprocessed_review])
+    if model_pipeline is None:
+        return "System Error: Model file missing."
 
-    if prediction[0] == 'OR':
-        return "Original Review"
-    else:
-        return "Computer Generated (Fake) Review"
+    if not review_text:
+        return "Invalid Input"
+
+    try:
+        # Preprocess using the helper
+        clean_text = preprocess_text(review_text)
+        
+        # Predict
+        # Note: The pipeline usually handles vectorization internally
+        prediction = model_pipeline.predict([clean_text])
+
+        # Map result (Adjust based on how your specific model was trained)
+        # Assuming 0/1 or 'OR'/'CG' based on your dataset
+        res = prediction[0]
+        
+        if res == 'OR' or res == 0 or res == '0':
+            return "Original Review"
+        else:
+            return "Computer Generated (Fake) Review"
+            
+    except Exception as e:
+        return f"Prediction Error: {str(e)}"
