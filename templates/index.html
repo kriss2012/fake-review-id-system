@@ -42,7 +42,7 @@
             <div class="flex items-center space-x-6">
                  {% if current_user.is_authenticated %}
                     {% if current_user.email == admin_email %}
-                        <a href="#admin-section" class="text-sm font-medium hover:text-primaryaccent transition">Admin</a>
+                        <a href="#admin-section" class="text-sm font-medium hover:text-primaryaccent transition text-yellow-500">Admin Panel</a>
                     {% endif %}
                     
                     {% if not current_user.is_subscribed %}
@@ -171,19 +171,111 @@
         {% endif %}
         
         {% if current_user.is_authenticated and current_user.email == admin_email %}
-         <div id="admin-section" class="mt-20 py-10 border-t border-white/10">
-             <h2 class="text-2xl font-bold mb-4">Admin Area</h2>
-             <p class="text-gray-400 mb-4">Welcome back, Admin. Use the link below to access the dashboard.</p>
-             <a href="#" onclick="alert('Admin dashboard would be served here (e.g. /admin route defined in app.py). View code structure comments.')" class="bg-darkcard hover:bg-gray-800 border border-white/20 text-white px-6 py-3 rounded-md transition inline-block">
-                Go to Admin Dashboard
-            </a>
+         <div id="admin-section" class="mt-20 pt-10 border-t border-white/10">
+             <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold">Admin Dashboard</h2>
+                    <p class="text-gray-400">Restricted Access: {{ admin_email }}</p>
+                </div>
+                <span class="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm font-bold border border-red-500/30">ADMIN MODE</span>
+             </div>
+
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                 <div class="glass-effect p-6 rounded-xl">
+                     <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-2">Total Revenue</h3>
+                     <div class="text-3xl font-bold text-green-400">₹{{ revenue }}</div>
+                 </div>
+                 <div class="glass-effect p-6 rounded-xl">
+                     <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-2">Total Users</h3>
+                     <div class="text-3xl font-bold">{{ total_users }}</div>
+                 </div>
+                 <div class="glass-effect p-6 rounded-xl">
+                     <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-2">Pro Subscribers</h3>
+                     <div class="text-3xl font-bold text-primaryaccent">{{ pro_users }}</div>
+                 </div>
+             </div>
+
+             <div class="glass-effect rounded-xl overflow-hidden mb-10">
+                 <div class="px-6 py-4 border-b border-white/10 bg-white/5">
+                     <h3 class="font-bold">Registered Users</h3>
+                 </div>
+                 <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                     <table class="w-full text-left text-sm text-gray-400">
+                         <thead class="bg-white/5 text-xs uppercase font-medium sticky top-0 bg-darkcard">
+                             <tr>
+                                 <th class="px-6 py-3">ID</th>
+                                 <th class="px-6 py-3">Name</th>
+                                 <th class="px-6 py-3">Email</th>
+                                 <th class="px-6 py-3">Status</th>
+                                 <th class="px-6 py-3">Joined</th>
+                             </tr>
+                         </thead>
+                         <tbody class="divide-y divide-white/10">
+                             {% for u in users %}
+                             <tr class="hover:bg-white/5 transition">
+                                 <td class="px-6 py-4">#{{ u.id }}</td>
+                                 <td class="px-6 py-4 flex items-center gap-3">
+                                     {% if u.profile_pic %}
+                                     <img src="{{ u.profile_pic }}" class="w-6 h-6 rounded-full">
+                                     {% endif %}
+                                     {{ u.name }}
+                                 </td>
+                                 <td class="px-6 py-4">{{ u.email }}</td>
+                                 <td class="px-6 py-4">
+                                     {% if u.is_subscribed %}
+                                     <span class="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs">Pro</span>
+                                     {% else %}
+                                     <span class="bg-gray-700/50 text-gray-400 px-2 py-1 rounded-full text-xs">Free</span>
+                                     {% endif %}
+                                 </td>
+                                 <td class="px-6 py-4">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+                             </tr>
+                             {% endfor %}
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
+
+             <div class="glass-effect rounded-xl overflow-hidden">
+                 <div class="px-6 py-4 border-b border-white/10 bg-white/5">
+                     <h3 class="font-bold">Recent Transactions</h3>
+                 </div>
+                 <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                     <table class="w-full text-left text-sm text-gray-400">
+                         <thead class="bg-white/5 text-xs uppercase font-medium sticky top-0 bg-darkcard">
+                             <tr>
+                                 <th class="px-6 py-3">Order ID</th>
+                                 <th class="px-6 py-3">User ID</th>
+                                 <th class="px-6 py-3">Amount</th>
+                                 <th class="px-6 py-3">Status</th>
+                                 <th class="px-6 py-3">Date</th>
+                             </tr>
+                         </thead>
+                         <tbody class="divide-y divide-white/10">
+                             {% for p in payments %}
+                             <tr class="hover:bg-white/5 transition">
+                                 <td class="px-6 py-4 font-mono">{{ p.order_id }}</td>
+                                 <td class="px-6 py-4">#{{ p.user_id }}</td>
+                                 <td class="px-6 py-4">₹{{ p.amount }}</td>
+                                 <td class="px-6 py-4 text-green-400">{{ p.status }}</td>
+                                 <td class="px-6 py-4">{{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                             </tr>
+                             {% else %}
+                             <tr>
+                                 <td colspan="5" class="px-6 py-4 text-center">No payments found.</td>
+                             </tr>
+                             {% endfor %}
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
          </div>
         {% endif %}
 
     </main>
 
     <footer class="py-8 text-center text-gray-500 text-sm glass-effect mt-auto">
-        <p>© {{ now.year if now else '2023' }} VeriView. All rights reserved.</p>
+        <p>© 2024 VeriView. All rights reserved.</p>
     </footer>
 
 
@@ -210,7 +302,9 @@
         });
 
         // Set initial active tab style
-        document.querySelector('.tab-btn[data-target="text-input"]').classList.add('bg-darkcard', 'text-white');
+        if(document.querySelector('.tab-btn[data-target="text-input"]')) {
+             document.querySelector('.tab-btn[data-target="text-input"]').classList.add('bg-darkcard', 'text-white');
+        }
 
         // File Input display names
         document.getElementById('file_upload')?.addEventListener('change', function(e) {
@@ -296,71 +390,73 @@
 
         // --- Razorpay Payment Integration ---
         {% if current_user.is_authenticated and not current_user.is_subscribed %}
-        document.getElementById('rzp-button1').onclick = async function (e) {
-            e.preventDefault();
+        if(document.getElementById('rzp-button1')) {
+            document.getElementById('rzp-button1').onclick = async function (e) {
+                e.preventDefault();
 
-            try {
-                // 1. Create Order on Server
-                const orderResponse = await fetch('/create-order', { method: 'POST' });
-                const orderData = await orderResponse.json();
+                try {
+                    // 1. Create Order on Server
+                    const orderResponse = await fetch('/create-order', { method: 'POST' });
+                    const orderData = await orderResponse.json();
 
-                if (!orderResponse.ok) {
-                    alert(orderData.error || 'Failed to create order');
-                    return;
-                }
-
-                // 2. Initialize Razorpay Checkout
-                var options = {
-                    "key": orderData.key_id,
-                    "amount": orderData.amount, 
-                    "currency": "INR",
-                    "name": "VeriView Premium",
-                    "description": "Lifetime Subscription",
-                    "order_id": orderData.order_id, 
-                    "handler": async function (response){
-                        // 3. Verify Payment on Server on success
-                        try {
-                             const verifyResponse = await fetch('/verify-payment', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature
-                                })
-                            });
-                            const verifyData = await verifyResponse.json();
-                            
-                            if(verifyData.status === 'success') {
-                                alert("Payment Successful! You are now a Pro member.");
-                                window.location.reload();
-                            } else {
-                                alert("Payment verification failed. Please contact support.");
-                            }
-
-                        } catch (err) {
-                             alert("Server error during verification.");
-                        }
-                    },
-                    "prefill": {
-                        "name": "{{ current_user.name }}",
-                        "email": "{{ current_user.email }}"
-                    },
-                    "theme": {
-                        "color": "#6366f1"
+                    if (!orderResponse.ok) {
+                        alert(orderData.error || 'Failed to create order');
+                        return;
                     }
-                };
-                var rzp1 = new Razorpay(options);
-                rzp1.on('payment.failed', function (response){
-                        alert("Payment Failed: " + response.error.description);
-                });
-                rzp1.open();
 
-            } catch (error) {
-                console.error("Payment initiation error", error);
-                alert("Could not initiate payment.");
+                    // 2. Initialize Razorpay Checkout
+                    var options = {
+                        "key": orderData.key_id,
+                        "amount": orderData.amount, 
+                        "currency": "INR",
+                        "name": "VeriView Premium",
+                        "description": "Lifetime Subscription",
+                        "order_id": orderData.order_id, 
+                        "handler": async function (response){
+                            // 3. Verify Payment on Server on success
+                            try {
+                                const verifyResponse = await fetch('/verify-payment', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_signature: response.razorpay_signature
+                                    })
+                                });
+                                const verifyData = await verifyResponse.json();
+                                
+                                if(verifyData.status === 'success') {
+                                    alert("Payment Successful! You are now a Pro member.");
+                                    window.location.reload();
+                                } else {
+                                    alert("Payment verification failed. Please contact support.");
+                                }
+
+                            } catch (err) {
+                                alert("Server error during verification.");
+                            }
+                        },
+                        "prefill": {
+                            "name": "{{ current_user.name }}",
+                            "email": "{{ current_user.email }}"
+                        },
+                        "theme": {
+                            "color": "#6366f1"
+                        }
+                    };
+                    var rzp1 = new Razorpay(options);
+                    rzp1.on('payment.failed', function (response){
+                            alert("Payment Failed: " + response.error.description);
+                    });
+                    rzp1.open();
+
+                } catch (error) {
+                    console.error("Payment initiation error", error);
+                    alert("Could not initiate payment.");
+                }
             }
         }
         {% endif %}

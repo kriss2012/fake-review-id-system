@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
@@ -60,9 +60,6 @@ def load_user(user_id):
         return None
 
 oauth = OAuth(app)
-
-# --- GOOGLE OAUTH CONFIGURATION (THE FIX) ---
-# We removed manual URLs. 'server_metadata_url' handles EVERYTHING automatically.
 google = oauth.register(
     name='google',
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
@@ -75,31 +72,44 @@ google = oauth.register(
 
 @app.route('/')
 def index():
-    return render_template('index.html', user=current_user, admin_email=ADMIN_EMAIL_ADDRESS)
+    # Prepare variables for Admin Dashboard (defaults to empty/zero)
+    users = []
+    payments = []
+    revenue = 0
+    total_users = 0
+    pro_users = 0
+
+    # If Admin is logged in, fetch the real data
+    if current_user.is_authenticated and current_user.email == ADMIN_EMAIL_ADDRESS:
+        users = User.query.all()
+        payments = Payment.query.order_by(Payment.created_at.desc()).all()
+        revenue = sum(p.amount for p in payments)
+        total_users = len(users)
+        pro_users = len([u for u in users if u.is_subscribed])
+
+    return render_template('index.html', 
+                           user=current_user, 
+                           admin_email=ADMIN_EMAIL_ADDRESS,
+                           users=users,
+                           payments=payments,
+                           revenue=revenue,
+                           total_users=total_users,
+                           pro_users=pro_users)
 
 @app.route('/login')
 def login():
-    # Force _external=True to get https:// on Render
     redirect_uri = url_for('authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
 def authorize():
     try:
-        # 1. Get the Token
         token = google.authorize_access_token()
-        
-        # 2. Get User Info
-        # Since we used server_metadata_url, we can now use the standard .userinfo() method
-        # or parse the id_token automatically.
         if 'userinfo' in token:
             user_info = token['userinfo']
         else:
-            # Fallback if userinfo isn't inside token
             user_info = google.userinfo()
         
-        # 3. Database Logic
-        # Google returns 'sub' as the ID in the new flow
         google_id = user_info.get('sub') or user_info.get('id')
         email = user_info.get('email')
         name = user_info.get('name')
@@ -122,8 +132,7 @@ def authorize():
     
     except Exception as e:
         logger.error(f"Auth Error: {e}")
-        # PRINT ERROR TO SCREEN SO WE CAN SEE IT
-        return f"<h3>Login Failed</h3><p>Error details: {str(e)}</p><a href='/'>Go Back</a>"
+        return f"<h3>Login Failed</h3><p>{str(e)}</p><a href='/'>Back</a>"
 
 @app.route('/logout')
 @login_required
@@ -148,7 +157,6 @@ def create_order():
             'user_name': current_user.name
         })
     except Exception as e:
-        logger.error(f"Order Create Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/verify-payment', methods=['POST'])
@@ -190,7 +198,6 @@ def verify_payment():
 
         return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"Payment Verify Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/predict', methods=['POST'])
@@ -223,20 +230,10 @@ def predict():
         logger.error(f"Prediction Crash: {e}")
         return jsonify({'error': f"Processing Error: {str(e)}"}), 500
 
-@app.route('/admin')
-@login_required
-def admin_panel():
-    if current_user.email != ADMIN_EMAIL_ADDRESS:
-        return "Access Denied", 403
-    users = User.query.all()
-    payments = Payment.query.order_by(Payment.created_at.desc()).all()
-    return render_template('admin.html', users=users, payments=payments)
-
 # --- SAFE DB CREATION ---
 with app.app_context():
     try:
         db.create_all()
-        logger.info("Database tables created.")
     except Exception as e:
         logger.error(f"Database creation failed: {e}")
 
