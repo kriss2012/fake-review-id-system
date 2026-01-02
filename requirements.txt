@@ -1,0 +1,13 @@
+Flask
+pandas
+numpy
+scikit-learn
+nltk
+pytesseract
+Pillow
+Flask-SQLAlchemy
+Flask-Login
+Authlib
+razorpay
+requests
+python-dotenv

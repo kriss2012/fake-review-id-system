@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriView - Fake Review Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0a0a',
+                        darkcard: '#121212',
+                        primaryaccent: '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+          .glass-effect {
+            @apply bg-darkcard/70 backdrop-blur-md border border-white/10;
+          }
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-gray-200 font-sans min-h-screen">
+
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-effect px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primaryaccent" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                <span class="text-xl font-bold tracking-tight">VeriView</span>
+            </div>
+            
+            <div class="flex items-center space-x-6">
+                 {% if current_user.is_authenticated %}
+                    {% if current_user.email == admin_email %}
+                        <a href="#admin-section" class="text-sm font-medium hover:text-primaryaccent transition">Admin</a>
+                    {% endif %}
+                    
+                    {% if not current_user.is_subscribed %}
+                        <a href="#subscribe-section" class="text-sm font-medium text-primaryaccent hover:text-indigo-400 transition">Upgrade to Pro</a>
+                    {% else %}
+                         <span class="text-xs bg-primaryaccent/20 text-primaryaccent px-2 py-1 rounded-full">Pro Member</span>
+                    {% endif %}
+
+                    <div class="flex items-center space-x-3">
+                        <img src="{{ current_user.profile_pic }}" alt="Profile" class="h-8 w-8 rounded-full border border-white/20">
+                        <span class="hidden md:block text-sm font-medium">{{ current_user.name }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-md transition">Logout</a>
+                 {% else %}
+                    <a href="{{ url_for('login') }}" class="flex items-center space-x-2 bg-white text-darkbg hover:bg-gray-200 px-4 py-2 rounded-md font-medium transition">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.12c-.22-.66-.35-1.36-.35-2.12s.13-1.46.35-2.12V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.82z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.82c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                        <span>Sign in with Google</span>
+                    </a>
+                 {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-6 max-w-5xl mx-auto">
+        
+        <div class="text-center mb-16 pt-10">
+            <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-400">
+                Detect Fake Reviews Instantly.
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                Use advanced machine learning to analyze text, files, or images and identify computer-generated reviews. Ensure authenticity.
+            </p>
+        </div>
+
+        {% if not current_user.is_authenticated %}
+        <div class="text-center py-12 glass-effect rounded-2xl">
+            <h2 class="text-2xl font-bold mb-4">Get Started</h2>
+            <p class="text-gray-400 mb-6">Please sign in to start analyzing reviews.</p>
+            <a href="{{ url_for('login') }}" class="bg-primaryaccent hover:bg-indigo-500 text-white px-6 py-3 rounded-md font-bold transition inline-block shadow-lg shadow-primaryaccent/20">
+                Login to Analyze
+            </a>
+        </div>
+        {% else %}
+
+        <div class="glass-effect rounded-2xl p-1">
+            <div class="flex space-x-1 bg-darkbg/50 p-1 rounded-t-2xl" role="tablist">
+                <button class="tab-btn flex-1 py-3 text-sm font-medium rounded-xl active-tab transition" data-target="text-input">Paste Text</button>
+                <button class="tab-btn flex-1 py-3 text-sm font-medium rounded-xl text-gray-400 hover:text-white transition" data-target="file-input">Upload .txt</button>
+                <button class="tab-btn flex-1 py-3 text-sm font-medium rounded-xl text-gray-400 hover:text-white transition" data-target="image-input">Upload Image</button>
+            </div>
+
+            <div class="p-6">
+                <form id="analysis-form">
+                    <div id="text-input-container" class="input-container">
+                        <textarea id="text_area" name="text_input" rows="8" class="w-full bg-darkbg border border-white/10 rounded-xl p-4 text-gray-200 focus:border-primaryaccent focus:ring-1 focus:ring-primaryaccent outline-none transition resize-none" placeholder="Paste the review text here..."></textarea>
+                    </div>
+
+                    <div id="file-input-container" class="input-container hidden">
+                        <label class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/20 rounded-xl cursor-pointer bg-darkbg hover:bg-darkcard transition">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p class="text-xs text-gray-500">.TXT files only</p>
+                            </div>
+                            <input id="file_upload" name="file_input" type="file" class="hidden" accept=".txt" />
+                        </label>
+                        <div id="file-name-display" class="mt-2 text-sm text-primaryaccent text-center hidden"></div>
+                    </div>
+
+                    <div id="image-input-container" class="input-container hidden">
+                         <label class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/20 rounded-xl cursor-pointer bg-darkbg hover:bg-darkcard transition">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to upload image</span></p>
+                                <p class="text-xs text-gray-500">PNG, JPG, JPEG (OCR will extract text)</p>
+                            </div>
+                            <input id="image_upload" name="image_input" type="file" class="hidden" accept="image/png, image/jpeg, image/jpg" />
+                        </label>
+                        <div id="image-name-display" class="mt-2 text-sm text-primaryaccent text-center hidden"></div>
+                    </div>
+
+                    <button type="submit" id="analyze-btn" class="w-full mt-6 bg-primaryaccent hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-primaryaccent/20 flex justify-center items-center">
+                        <span>Analyze Review</span>
+                        <svg id="loading-spinner" class="hidden animate-spin ml-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="result-section" class="hidden mt-10 glass-effect rounded-2xl p-8 text-center transition-all duration-500">
+            <h2 class="text-gray-400 uppercase tracking-wider font-semibold mb-4">Analysis Result</h2>
+            
+            <div id="prediction-result" class="text-3xl md:text-4xl font-extrabold mb-6">
+                </div>
+
+            <div class="bg-darkbg/50 p-4 rounded-xl text-left">
+                <h4 class="text-sm text-gray-400 mb-2">Processed Text Segment:</h4>
+                <p id="extracted-text" class="text-gray-300 italic text-sm"></p>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {% if current_user.is_authenticated and not current_user.is_subscribed %}
+        <div id="subscribe-section" class="mt-20 text-center">
+            <h2 class="text-3xl font-bold mb-6">Upgrade to Premium</h2>
+            <p class="text-gray-400 mb-10 max-w-xl mx-auto">Get unlimited analysis, faster processing, and priority support. One-time payment for lifetime access.</p>
+            
+            <div class="glass-effect max-w-md mx-auto p-8 rounded-2xl border-2 border-primaryaccent/30 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-primaryaccent text-xs font-bold px-3 py-1 rounded-bl-lg">POPULAR</div>
+                <h3 class="text-xl font-bold mb-4">Lifetime Pro</h3>
+                <div class="text-4xl font-extrabold mb-6">₹499 <span class="text-lg font-normal text-gray-400">/ once</span></div>
+                <ul class="text-left text-gray-300 mb-8 space-y-3">
+                    <li class="flex items-center"><svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Unlimited text analysis</li>
+                    <li class="flex items-center"><svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Unlimited file & image uploads</li>
+                     <li class="flex items-center"><svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Email Support</li>
+                </ul>
+                <button id="rzp-button1" class="w-full bg-primaryaccent hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-primaryaccent/20">
+                    Unlock Premium Now
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if current_user.is_authenticated and current_user.email == admin_email %}
+         <div id="admin-section" class="mt-20 py-10 border-t border-white/10">
+             <h2 class="text-2xl font-bold mb-4">Admin Area</h2>
+             <p class="text-gray-400 mb-4">Welcome back, Admin. Use the link below to access the dashboard.</p>
+             <a href="#" onclick="alert('Admin dashboard would be served here (e.g. /admin route defined in app.py). View code structure comments.')" class="bg-darkcard hover:bg-gray-800 border border-white/20 text-white px-6 py-3 rounded-md transition inline-block">
+                Go to Admin Dashboard
+            </a>
+         </div>
+        {% endif %}
+
+    </main>
+
+    <footer class="py-8 text-center text-gray-500 text-sm glass-effect mt-auto">
+        <p>© {{ now.year if now else '2023' }} VeriView. All rights reserved.</p>
+    </footer>
+
+
+    <script>
+        // --- Tab Switching Logic ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const inputContainers = document.querySelectorAll('.input-container');
+        let currentInputType = 'text-input';
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active tab style
+                tabBtns.forEach(b => b.classList.remove('active-tab', 'bg-darkcard', 'text-white'));
+                tabBtns.forEach(b => b.classList.add('text-gray-400'));
+                btn.classList.add('active-tab', 'bg-darkcard', 'text-white');
+                btn.classList.remove('text-gray-400');
+
+                // Hide all containers and show target
+                const targetId = btn.dataset.target + '-container';
+                inputContainers.forEach(container => container.classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                currentInputType = btn.dataset.target;
+            });
+        });
+
+        // Set initial active tab style
+        document.querySelector('.tab-btn[data-target="text-input"]').classList.add('bg-darkcard', 'text-white');
+
+        // File Input display names
+        document.getElementById('file_upload')?.addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            const display = document.getElementById('file-name-display');
+            if(fileName) { display.textContent = "Selected: " + fileName; display.classList.remove('hidden'); }
+        });
+         document.getElementById('image_upload')?.addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            const display = document.getElementById('image-name-display');
+            if(fileName) { display.textContent = "Selected: " + fileName; display.classList.remove('hidden'); }
+        });
+
+
+        // --- Form Submission & AJAX ---
+        const form = document.getElementById('analysis-form');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const resultSection = document.getElementById('result-section');
+        const predictionResult = document.getElementById('prediction-result');
+        const extractedText = document.getElementById('extracted-text');
+
+        if(form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Basic client-side validation based on current tab
+                if(currentInputType === 'text-input' && !document.getElementById('text_area').value.trim()) {
+                    alert("Please paste some text to analyze."); return;
+                }
+                if(currentInputType === 'file-input' && !document.getElementById('file_upload').files.length) {
+                    alert("Please select a .txt file."); return;
+                }
+                 if(currentInputType === 'image-input' && !document.getElementById('image_upload').files.length) {
+                    alert("Please select an image file."); return;
+                }
+
+
+                // UI Loading State
+                analyzeBtn.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+                analyzeBtn.querySelector('span').textContent = 'Analyzing...';
+                resultSection.classList.add('hidden');
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Show Results
+                        resultSection.classList.remove('hidden');
+                        extractedText.textContent = data.extracted_text;
+                        
+                        if(data.prediction.includes("Fake")) {
+                            predictionResult.innerHTML = `<span class="text-red-500">${data.prediction}</span>`;
+                        } else {
+                            predictionResult.innerHTML = `<span class="text-green-500">${data.prediction}</span>`;
+                        }
+                        // Scroll to results
+                        resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                    } else {
+                        alert(data.error || "An error occurred during analysis.");
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert("Failed to connect to the server.");
+                } finally {
+                    // Reset UI state
+                    analyzeBtn.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                    analyzeBtn.querySelector('span').textContent = 'Analyze Review';
+                }
+            });
+        }
+
+        // --- Razorpay Payment Integration ---
+        {% if current_user.is_authenticated and not current_user.is_subscribed %}
+        document.getElementById('rzp-button1').onclick = async function (e) {
+            e.preventDefault();
+
+            try {
+                // 1. Create Order on Server
+                const orderResponse = await fetch('/create-order', { method: 'POST' });
+                const orderData = await orderResponse.json();
+
+                if (!orderResponse.ok) {
+                    alert(orderData.error || 'Failed to create order');
+                    return;
+                }
+
+                // 2. Initialize Razorpay Checkout
+                var options = {
+                    "key": orderData.key_id,
+                    "amount": orderData.amount, 
+                    "currency": "INR",
+                    "name": "VeriView Premium",
+                    "description": "Lifetime Subscription",
+                    "order_id": orderData.order_id, 
+                    "handler": async function (response){
+                        // 3. Verify Payment on Server on success
+                        try {
+                             const verifyResponse = await fetch('/verify-payment', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+                            const verifyData = await verifyResponse.json();
+                            
+                            if(verifyData.status === 'success') {
+                                alert("Payment Successful! You are now a Pro member.");
+                                window.location.reload();
+                            } else {
+                                alert("Payment verification failed. Please contact support.");
+                            }
+
+                        } catch (err) {
+                             alert("Server error during verification.");
+                        }
+                    },
+                    "prefill": {
+                        "name": "{{ current_user.name }}",
+                        "email": "{{ current_user.email }}"
+                    },
+                    "theme": {
+                        "color": "#6366f1"
+                    }
+                };
+                var rzp1 = new Razorpay(options);
+                rzp1.on('payment.failed', function (response){
+                        alert("Payment Failed: " + response.error.description);
+                });
+                rzp1.open();
+
+            } catch (error) {
+                console.error("Payment initiation error", error);
+                alert("Could not initiate payment.");
+            }
+        }
+        {% endif %}
+
+    </script>
+</body>
+</html>
