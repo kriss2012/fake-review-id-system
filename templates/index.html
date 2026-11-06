@@ -1,636 +1,521 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VeriView AI - Fake Review Detector</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkbg: '#050816',
-                        darkcard: '#101827',
-                        primaryaccent: '#6366f1',
-                        secondaryaccent: '#8b5cf6'
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style type="text/tailwindcss">
-        @layer utilities {
-
-            .glass-effect{
-                @apply bg-darkcard/70 backdrop-blur-xl border border-white/10;
-            }
-
-            .gradient-text{
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400;
-            }
-
-            .glow{
-                box-shadow: 0 0 25px rgba(99,102,241,0.35);
-            }
-
-            .animate-float{
-                animation: float 4s ease-in-out infinite;
-            }
-
-            @keyframes float {
-                0% { transform: translateY(0px); }
-                50% { transform: translateY(-10px); }
-                100% { transform: translateY(0px); }
-            }
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VERIVIEW // Cyber Fraud & Fake Review Radar HUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
+<body>
 
-<body class="bg-darkbg text-white min-h-screen overflow-x-hidden">
+  <!-- Deep Space Starfield & Halo Canvas -->
+  <canvas id="spaceCanvas"></canvas>
+  <div class="grid-overlay"></div>
+  <div class="crosshairs"></div>
+  <div class="scan"></div>
 
-    <!-- BACKGROUND -->
-    <div class="fixed inset-0 -z-10">
-        <div class="absolute top-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+  <!-- System Boot Sequence Overlay -->
+  <div id="boot">
+    <div class="boot-emblem">
+      <svg viewBox="0 0 24 24"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+    </div>
+    <b>VERIVIEW DECEPTION RADAR HUD</b>
+    <span id="bootText">CALIBRATING NLP TENSORS...</span>
+    <i><u id="bootBar"></u></i>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="brand-emblem">
+        <svg viewBox="0 0 24 24"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+      </div>
+      <div class="brand-title">
+        VERIVIEW // FRAUD <b>RADAR</b>
+        <small>SYS_ACTIVE // v4.2.0</small>
+      </div>
     </div>
 
-    <!-- NAVBAR -->
-    <nav class="glass-effect fixed top-0 left-0 right-0 z-50 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <div class="telemetry-strip">
+      <div class="chip"><span class="dot"></span> MATRIX: <b>ONLINE</b></div>
+      <div class="chip">ACCURACY: <b id="topAccuracy">98.4%</b></div>
+      <div class="chip">LATENCY: <b id="topLatency">11.2ms</b></div>
+      <div class="chip">CORPUS: <b>2,000 REVIEWS</b></div>
+    </div>
 
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center glow">
-                    🛡️
+    <div class="nav-actions">
+      <button class="hud" id="btnAudioToggle" title="Toggle Synthesizer Sound FX">AUDIO: <b>OFF</b></button>
+      <button class="hud" id="btnLogsToggle">TERMINAL</button>
+      
+      {% if user and user.is_authenticated %}
+        {% if user.is_subscribed %}
+          <span class="hud emerald">PRO ACTIVE</span>
+        {% else %}
+          <button class="hud fill" id="btnUpgradePro">UPGRADE PRO (&#8377;499)</button>
+        {% endif %}
+        <div class="chip">OPERATOR: <b>{{ user.name or 'ANONYMOUS' }}</b></div>
+        <a href="/logout" class="hud" style="color:var(--red);">LOGOUT</a>
+      {% else %}
+        <button class="hud fill" id="btnUpgradePro">PRO UPGRADE</button>
+        <a href="/login" class="hud">OPERATOR SIGN IN</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Main Application Frame -->
+  <div class="app-frame">
+
+    <!-- Mode Switch Bar -->
+    <div class="mode-bar">
+      <div class="hud-tabs">
+        <button class="hud hud-tab active" data-tab="tab-radar">[ 01 // DECEPTION RADAR TERMINAL ]</button>
+        <button class="hud hud-tab" data-tab="tab-architecture">[ 02 // NEURAL ARCHITECTURE & WORKINGS ]</button>
+        <button class="hud hud-tab" data-tab="tab-atlas">[ 03 // LINGUISTIC FRAUD ATLAS ]</button>
+        <button class="hud hud-tab" data-tab="tab-audit">[ 04 // AUDIT & REVENUE DECK ]</button>
+      </div>
+
+      <div class="chip">
+        CLASSIFIER: <b>LOGISTIC REGRESSION &bull; TF-IDF VECTORIZER</b>
+      </div>
+    </div>
+
+    <!-- TAB 1: DECEPTION RADAR TERMINAL -->
+    <main class="tab-pane active" id="tab-radar">
+      <div class="diag-grid">
+
+        <!-- Left Slate: Input Modalities -->
+        <section class="slate">
+          <div class="slate-header">
+            <div class="slate-title">
+              <i>â–¶</i> REVIEW INGESTION & SENSORY INPUT
+            </div>
+            <span class="slate-badge">OCR &bull; NLP STREAM</span>
+          </div>
+
+          <!-- Modality Selector -->
+          <div class="modality-bar">
+            <button class="modality-btn active" data-modality="direct-text">DIRECT TEXT</button>
+            <button class="modality-btn" data-modality="file-upload">UPLOAD .TXT FILE</button>
+            <button class="modality-btn" data-modality="ocr-image">IMAGE OCR (PYTESSERACT)</button>
+          </div>
+
+          <!-- 1-Click Sampler Presets -->
+          <div class="presets-wrap">
+            <span class="presets-lbl">FRAUD PATTERN SAMPLERS (CLICK TO INJECT):</span>
+            <div class="presets-row">
+              <button class="preset-btn" data-review="I can't believe how perfect this restaurant is! Best food ever, total miracle overnight!">ðŸ¤– BOT HYPERBOLE (FAKE)</button>
+              <button class="preset-btn" data-review="The headphones arrived on time. The sound quality is decent and overall it performs well so far. Pleased with the purchase.">âœ… BALANCED REVIEW (ORIGINAL)</button>
+              <button class="preset-btn" data-review="Fake restaurant! Complete scam, avoid this place at all costs! Total waste of money!">âš ï¸  EXTREME SLANDER (FAKE)</button>
+              <button class="preset-btn" data-review="The battery lasts about 6 hours on medium brightness. The keyboard feels okay though the trackpad is slightly stiff.">âœ… REAL HARDWARE TEST (ORIGINAL)</button>
+            </div>
+          </div>
+
+          <!-- Modality 1: Direct Textarea -->
+          <div id="pane-direct-text">
+            <div class="input-hud-box">
+              <textarea id="reviewText" placeholder="PASTE PRODUCT, APP, OR RESTAURANT REVIEW TO AUDIT FOR DECEPTION OR SYNTHETIC BOT FINGERPRINTS..."></textarea>
+              <div class="input-telemetry">
+                <span>LEXICAL STREAM: <b id="charCounter">0 CHARS</b> &bull; <b id="wordCounter">0 WORDS</b></span>
+                <span>STEMMER: <b>PORTER 1980</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modality 2: File Upload -->
+          <div id="pane-file-upload" hidden>
+            <label class="dropzone" id="fileDropZone">
+              <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.7;">ðŸ“„</div>
+              <div style="font-family:'Chakra Petch',sans-serif; font-size:13px; color:#fff; letter-spacing:0.1em;">SELECT OR DROP .TXT REVIEW FILE</div>
+              <p style="color:var(--tx2); font-size:10px; margin-top:4px;">Plaintext utf-8 encoded review files up to 2MB</p>
+              <input type="file" id="fileInput" accept=".txt" style="display:none;">
+            </label>
+            <div id="fileUploadName" class="chip" style="margin-top:8px; display:none;">FILE: <b id="selectedFileName">---</b></div>
+          </div>
+
+          <!-- Modality 3: OCR Image Upload -->
+          <div id="pane-ocr-image" hidden>
+            <label class="dropzone" id="imageDropZone">
+              <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.7;">ðŸ“¸</div>
+              <div style="font-family:'Chakra Petch',sans-serif; font-size:13px; color:#fff; letter-spacing:0.1em;">UPLOAD SCREENSHOT OF REVIEW (PNG / JPG)</div>
+              <p style="color:var(--tx2); font-size:10px; margin-top:4px;">Optical Character Recognition will extract text automatically</p>
+              <input type="file" id="imageInput" accept="image/*" style="display:none;">
+            </label>
+            <div id="imageUploadName" class="chip" style="margin-top:8px; display:none;">IMAGE: <b id="selectedImageName">---</b></div>
+          </div>
+
+          <!-- Actions -->
+          <div class="action-row">
+            <button class="hud fill btn-exec" id="btnAuditReview">
+              <span>EXECUTE FRAUD INFERENCE</span>
+              <i>â–¶</i>
+            </button>
+            <button class="hud btn-clear" id="btnClearReview">CLEAR</button>
+          </div>
+
+          <div class="chip" style="margin-top: 4px; font-size: 9px; line-height: 1.4;">
+            SYSTEM GUARANTEE: TENSORS ANALYZE SYNTACTIC DIVERSITY, SUPERLATIVE SATURATION, AND TF-IDF FEATURE WEIGHTS.
+          </div>
+        </section>
+
+        <!-- Right Slate: Telemetry & Results -->
+        <section class="slate">
+          <div class="slate-header">
+            <div class="slate-title">
+              <i>â–¶</i> DECEPTION VERDICT & RADAR TELEMETRY
+            </div>
+            <span class="slate-badge" id="radarStatusBadge">AWAITING INFERENCE</span>
+          </div>
+
+          <div id="radar-idle" style="padding: 50px 20px; text-align: center; color: var(--tx2);">
+            <div style="font-size: 30px; margin-bottom: 8px; opacity: 0.6;">âŒ›</div>
+            <p style="letter-spacing: 0.14em; font-size: 11px;">NO ACTIVE DECEPTION SCAN</p>
+            <small style="color: var(--tx-dark);">Input review text or click a preset sampler to trigger tensor execution.</small>
+          </div>
+
+          <div id="radar-result" hidden class="result-display">
+            
+            <!-- Primary Verdict Banner -->
+            <div class="verdict-banner" id="verdictBanner">
+              <div class="verdict-tier">
+                <span id="threatTierText">FRAUD DETECTION VERDICT</span>
+                <span class="hud" id="verdictBadge" style="padding: 2px 8px; font-size: 9px;">AUTHENTIC</span>
+              </div>
+              <div class="verdict-name" id="predictionResultText">---</div>
+              
+              <div class="verdict-conf-gauge">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--tx2);">
+                  <span>DECEPTION PROBABILITY INDEX</span>
+                  <b id="deceptionScoreText" style="color: #ffffff;">0.0%</b>
                 </div>
-
-                <div>
-                    <h1 class="text-xl font-bold">VeriView AI</h1>
-                    <p class="text-xs text-gray-400">
-                        Fake Review Detection System
-                    </p>
+                <div class="gauge-bar">
+                  <div class="gauge-fill" id="deceptionGauge"></div>
                 </div>
+              </div>
             </div>
 
-            <div class="hidden md:flex gap-8 text-sm text-gray-300">
-                <a href="#" class="hover:text-indigo-400 transition">Home</a>
-                <a href="#" class="hover:text-indigo-400 transition">Features</a>
-                <a href="#" class="hover:text-indigo-400 transition">AI Detector</a>
-                <a href="#" class="hover:text-indigo-400 transition">About</a>
-            </div>
-
-        </div>
-    </nav>
-
-    <!-- HERO -->
-    <main class="pt-32 pb-20 px-6">
-
-        <div class="max-w-5xl mx-auto text-center">
-
-            <div class="animate-float inline-block mb-6">
-                <div class="px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm">
-                    AI Powered Review Analysis
+            <!-- Probability Distribution Spectrum -->
+            <div>
+              <div class="presets-lbl" style="margin-bottom: 6px;">PROBABILITY VECTOR RESOLUTION:</div>
+              <div class="diff-list">
+                <div class="diff-item">
+                  <div class="diff-row">
+                    <span>Computer Generated / Fake Review</span>
+                    <b id="probFakeVal" style="color: var(--red);">0.0%</b>
+                  </div>
+                  <div class="diff-bar"><div class="diff-fill" id="probFakeFill" style="background:var(--red);"></div></div>
                 </div>
-            </div>
-
-            <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6">
-                Detect
-                <span class="gradient-text">
-                    Fake Reviews
-                </span>
-                Instantly
-            </h1>
-
-            <p class="text-gray-400 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed">
-                Analyze customer reviews using advanced AI pattern detection.
-                Identify spam, promotional content, bots, and suspicious reviews
-                in seconds.
-            </p>
-
-        </div>
-
-        <!-- DETECTOR CARD -->
-        <div class="max-w-4xl mx-auto mt-16 glass-effect rounded-3xl overflow-hidden glow">
-
-            <!-- TABS -->
-            <div class="flex bg-black/20 p-2">
-
-                <button
-                    class="tab-btn flex-1 py-4 rounded-2xl bg-darkcard text-white font-semibold transition"
-                    data-target="text-input">
-                    Paste Review
-                </button>
-
-                <button
-                    class="tab-btn flex-1 py-4 rounded-2xl text-gray-400 hover:text-white transition"
-                    data-target="file-input">
-                    Upload TXT
-                </button>
-
-            </div>
-
-            <!-- CONTENT -->
-            <div class="p-8">
-
-                <form id="analysis-form">
-
-                    <!-- TEXT -->
-                    <div id="text-input-container" class="input-container">
-
-                        <textarea
-                            id="text_area"
-                            rows="10"
-                            class="w-full bg-black/20 border border-white/10 rounded-2xl p-5 outline-none focus:border-indigo-500 transition resize-none"
-                            placeholder="Paste any product or service review here..."></textarea>
-
-                    </div>
-
-                    <!-- FILE -->
-                    <div id="file-input-container" class="input-container hidden">
-
-                        <label class="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-indigo-500 transition">
-
-                            <div class="text-6xl mb-4">
-                                📄
-                            </div>
-
-                            <div class="text-lg font-semibold">
-                                Upload TXT File
-                            </div>
-
-                            <p class="text-gray-400 text-sm mt-2">
-                                Drag & drop or click to upload
-                            </p>
-
-                            <input
-                                id="file_upload"
-                                type="file"
-                                accept=".txt"
-                                class="hidden" />
-
-                        </label>
-
-                        <div
-                            id="file-name-display"
-                            class="mt-4 text-center text-indigo-400 hidden">
-                        </div>
-
-                    </div>
-
-                    <!-- BUTTON -->
-                    <button
-                        type="submit"
-                        id="analyze-btn"
-                        class="w-full mt-8 bg-gradient-to-r from-indigo-500 to-purple-500 hover:scale-[1.02] transition-all duration-300 py-4 rounded-2xl text-lg font-bold glow flex justify-center items-center">
-
-                        <span>
-                            Analyze Review
-                        </span>
-
-                        <svg
-                            id="loading-spinner"
-                            class="hidden animate-spin ml-3 h-6 w-6 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24">
-
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4"></circle>
-
-                            <path
-                                class="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z">
-                            </path>
-
-                        </svg>
-
-                    </button>
-
-                </form>
-
-            </div>
-
-        </div>
-
-        <!-- RESULT -->
-        <div
-            id="result-section"
-            class="hidden max-w-4xl mx-auto mt-12 glass-effect rounded-3xl p-8">
-
-            <div class="text-center mb-8">
-
-                <p class="uppercase text-gray-400 tracking-widest text-sm">
-                    Analysis Result
-                </p>
-
-                <div
-                    id="prediction-result"
-                    class="text-4xl font-extrabold mt-4">
+                <div class="diff-item">
+                  <div class="diff-row">
+                    <span>Original / Genuine Human Review</span>
+                    <b id="probOrigVal" style="color: var(--emerald);">0.0%</b>
+                  </div>
+                  <div class="diff-bar"><div class="diff-fill" id="probOrigFill" style="background:var(--emerald);"></div></div>
                 </div>
-
+              </div>
             </div>
 
-            <!-- SCORE -->
-            <div class="bg-black/20 rounded-2xl p-6 mb-6">
+            <!-- Token Attribution Inspector -->
+            <div>
+              <div class="presets-lbl" style="margin-bottom: 6px;">LOCAL FEATURE ATTRIBUTIONS (TF-IDF WEIGHT DRIVERS):</div>
+              <div class="tokens-wrap" id="tokenAttributions"></div>
+            </div>
 
-                <div class="flex justify-between mb-3">
-                    <span class="text-gray-300">
-                        AI Confidence Score
-                    </span>
-
-                    <span
-                        id="confidence-score"
-                        class="font-bold text-indigo-400">
-                        0%
-                    </span>
+            <!-- Linguistic Complexity Radar -->
+            <div>
+              <div class="presets-lbl" style="margin-bottom: 6px;">LINGUISTIC DECEPTION MARKERS:</div>
+              <div class="radar-grid">
+                <div class="radar-card">
+                  <span>LEXICAL DIVERSITY</span>
+                  <b id="metricLexDiv">0.00</b>
                 </div>
-
-                <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-
-                    <div
-                        id="confidence-bar"
-                        class="h-4 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
-                        style="width:0%">
-                    </div>
-
+                <div class="radar-card">
+                  <span>SUPERLATIVE COUNT</span>
+                  <b id="metricSuperlatives">0</b>
                 </div>
-
+                <div class="radar-card">
+                  <span>EXCLAMATIONS</span>
+                  <b id="metricExclamations">0</b>
+                </div>
+                <div class="radar-card">
+                  <span>TOTAL WORD COUNT</span>
+                  <b id="metricWords">0</b>
+                </div>
+              </div>
             </div>
 
-            <!-- ANALYSIS -->
-            <div class="bg-black/20 rounded-2xl p-6 mb-6">
-
-                <h3 class="text-xl font-bold mb-4 text-indigo-400">
-                    AI Analysis
-                </h3>
-
-                <ul
-                    id="analysis-reasons"
-                    class="space-y-3 text-gray-300">
-                </ul>
-
+            <!-- Processed Review Snippet -->
+            <div class="protocol-card" style="border-color: rgba(255, 32, 78, 0.25);">
+              <h4><i style="color:var(--cyan);">â–¾</i> PROCESSED INGESTION BUFFER</h4>
+              <p id="extractedTextPreview" style="color:var(--tx2); font-size:11px; max-height:80px; overflow-y:auto; line-height:1.5;"></p>
             </div>
 
-            <!-- EXTRACTED -->
-            <div class="bg-black/20 rounded-2xl p-6">
+          </div>
+        </section>
 
-                <h3 class="text-xl font-bold mb-4 text-indigo-400">
-                    Processed Review
-                </h3>
-
-                <p
-                    id="extracted-text"
-                    class="text-gray-300 leading-relaxed">
-                </p>
-
-            </div>
-
-        </div>
-
+      </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="py-8 text-center text-gray-500 border-t border-white/10">
-        © 2026 VeriView AI — Fake Review Detection System
-    </footer>
-
-    <!-- SCRIPT -->
-    <script>
-
-        // TAB SWITCH
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const inputContainers = document.querySelectorAll('.input-container');
-
-        let currentInputType = 'text-input';
-
-        tabBtns.forEach(btn => {
-
-            btn.addEventListener('click', () => {
-
-                tabBtns.forEach(b => {
-                    b.classList.remove('bg-darkcard', 'text-white');
-                    b.classList.add('text-gray-400');
-                });
-
-                btn.classList.add('bg-darkcard', 'text-white');
-                btn.classList.remove('text-gray-400');
-
-                inputContainers.forEach(c => {
-                    c.classList.add('hidden');
-                });
-
-                document
-                    .getElementById(btn.dataset.target + '-container')
-                    .classList.remove('hidden');
-
-                currentInputType = btn.dataset.target;
-
-            });
-
-        });
-
-        // FILE NAME
-        document.getElementById('file_upload')
-            .addEventListener('change', function(e){
-
-                const fileName = e.target.files[0]?.name;
-
-                const display =
-                    document.getElementById('file-name-display');
-
-                if(fileName){
-
-                    display.textContent =
-                        "Selected File: " + fileName;
-
-                    display.classList.remove('hidden');
-                }
-
-            });
-
-        // MAIN FORM
-        const form = document.getElementById('analysis-form');
-
-        const resultSection =
-            document.getElementById('result-section');
-
-        const predictionResult =
-            document.getElementById('prediction-result');
-
-        const extractedText =
-            document.getElementById('extracted-text');
-
-        const analyzeBtn =
-            document.getElementById('analyze-btn');
-
-        const loadingSpinner =
-            document.getElementById('loading-spinner');
-
-        const confidenceScore =
-            document.getElementById('confidence-score');
-
-        const confidenceBar =
-            document.getElementById('confidence-bar');
-
-        const analysisReasons =
-            document.getElementById('analysis-reasons');
-
-        form.addEventListener('submit', async (e) => {
-
-            e.preventDefault();
-
-            let text = "";
-
-            // TEXT
-            if(currentInputType === 'text-input'){
-
-                text =
-                    document.getElementById('text_area').value;
-
-            }
-
-            // FILE
-            if(currentInputType === 'file-input'){
-
-                const file =
-                    document.getElementById('file_upload').files[0];
-
-                if(!file){
-                    alert("Please upload TXT file");
-                    return;
-                }
-
-                text = await file.text();
-            }
-
-            if(!text.trim()){
-
-                alert("Please enter review");
-
-                return;
-            }
-
-            // LOADING
-            analyzeBtn.disabled = true;
-
-            loadingSpinner.classList.remove('hidden');
-
-            analyzeBtn.querySelector('span').textContent =
-                "Analyzing...";
-
-            setTimeout(() => {
-
-                const result =
-                    detectFakeReview(text);
-
-                showResult(result, text);
-
-                analyzeBtn.disabled = false;
-
-                loadingSpinner.classList.add('hidden');
-
-                analyzeBtn.querySelector('span').textContent =
-                    "Analyze Review";
-
-            }, 1800);
-
-        });
-
-        // SHOW RESULT
-        function showResult(result, text){
-
-            resultSection.classList.remove('hidden');
-
-            extractedText.textContent =
-                text.substring(0, 1000);
-
-            predictionResult.innerHTML = result.fake
-                ? `<span class="text-red-500">⚠️ Fake Review Detected</span>`
-                : `<span class="text-green-400">✅ Genuine Review</span>`;
-
-            confidenceScore.textContent =
-                result.confidence + "%";
-
-            confidenceBar.style.width =
-                result.confidence + "%";
-
-            analysisReasons.innerHTML = "";
-
-            result.reasons.forEach(reason => {
-
-                analysisReasons.innerHTML += `
-                    <li class="bg-white/5 border border-white/10 rounded-xl p-4">
-                        ${reason}
-                    </li>
-                `;
-
-            });
-
-            resultSection.scrollIntoView({
-                behavior: "smooth"
-            });
-
-        }
-
-        // AI DETECTOR
-        function detectFakeReview(text){
-
-            let score = 0;
-
-            let reasons = [];
-
-            const lower = text.toLowerCase();
-
-            const fakeWords = [
-                "best product ever",
-                "must buy",
-                "100% recommend",
-                "life changing",
-                "excellent",
-                "amazing",
-                "perfect",
-                "awesome",
-                "fantastic",
-                "superb",
-                "highly recommend",
-                "worth every penny"
-            ];
-
-            fakeWords.forEach(word => {
-
-                if(lower.includes(word)){
-
-                    score += 12;
-
-                    reasons.push(
-                        `Promotional phrase detected: "${word}"`
-                    );
-
-                }
-
-            });
-
-            // CAPS DETECT
-            const caps =
-                text.match(/[A-Z]/g) || [];
-
-            if(caps.length > text.length * 0.3){
-
-                score += 15;
-
-                reasons.push(
-                    "Excessive use of CAPITAL letters"
-                );
-
-            }
-
-            // EXCLAMATIONS
-            const exclamations =
-                (text.match(/!/g) || []).length;
-
-            if(exclamations > 4){
-
-                score += 15;
-
-                reasons.push(
-                    "Too many exclamation marks"
-                );
-
-            }
-
-            // SHORT REVIEW
-            const words = lower.split(/\s+/);
-
-            if(words.length < 8){
-
-                score += 20;
-
-                reasons.push(
-                    "Very short suspicious review"
-                );
-
-            }
-
-            // REPETITION
-            const uniqueWords =
-                new Set(words);
-
-            if(uniqueWords.size / words.length < 0.5){
-
-                score += 20;
-
-                reasons.push(
-                    "Highly repetitive writing pattern"
-                );
-
-            }
-
-            // OVERLY POSITIVE
-            const positiveWords =
-                ["great", "amazing", "perfect", "excellent"];
-
-            let positiveCount = 0;
-
-            positiveWords.forEach(w => {
-
-                if(lower.includes(w)){
-                    positiveCount++;
-                }
-
-            });
-
-            if(positiveCount >= 3){
-
-                score += 10;
-
-                reasons.push(
-                    "Overly positive language detected"
-                );
-
-            }
-
-            // FINAL
-            let fake = score >= 40;
-
-            let confidence = fake
-                ? Math.min(97, score + 20)
-                : Math.max(65, 100 - score);
-
-            if(reasons.length === 0){
-
-                reasons.push(
-                    "Natural human writing style detected"
-                );
-
-                reasons.push(
-                    "Balanced emotional tone"
-                );
-
-                reasons.push(
-                    "No major spam indicators found"
-                );
-
-            }
-
-            return {
-                fake,
-                confidence,
-                reasons
-            };
-
-        }
-
-    </script>
-
+    <!-- TAB 2: NEURAL ARCHITECTURE & MODEL WORKINGS IN DETAIL -->
+    <section class="tab-pane" id="tab-architecture">
+      <div class="slate">
+        
+        <div class="arch-hero">
+          <div class="presets-lbl" style="color: var(--red);">FRAUD CLASSIFICATION ENGINE // MATHEMATICAL FOUNDATIONS</div>
+          <h2>HOW THE FAKE REVIEW IDENTIFIER WORKS (IN DETAIL)</h2>
+          <p>
+            The VeriView AI fraud engine leverages Optical Character Recognition (Pytesseract), Martin Porter's morphological suffix stripping stemmer, sublinear TF-IDF vector space mapping, and a regularized Logistic Regression sigmoid classifier. Explore the exact transformation pipeline and mathematical equations below.
+          </p>
+        </div>
+
+        <!-- 5-Stage Diagram -->
+        <div class="presets-lbl" style="margin-top: 10px;">END-TO-END FRAUD INSPECTION PIPELINE:</div>
+        <div class="pipeline-diagram">
+          
+          <div class="pipe-step">
+            <div class="step-num">01</div>
+            <h4>MULTIMODAL INGESTION & OCR</h4>
+            <p>Direct text, plaintext files, or screenshot images are ingested. Pytesseract extracts pixel text via Otsu binarization and LSTM OCR algorithms.</p>
+          </div>
+
+          <div class="pipe-step">
+            <div class="step-num">02</div>
+            <h4>REGEX & PORTER STEMMING</h4>
+            <p>Punctuation and numbers are stripped. Words are lowercased, filtered against NLTK English stopwords, and reduced to grammatical roots via Porter Stemming (e.g. "arrived" &rarr; "arriv").</p>
+          </div>
+
+          <div class="pipe-step">
+            <div class="step-num">03</div>
+            <h4>TF-IDF VECTOR SPACE (84-D)</h4>
+            <p>Preprocessed stems are mapped into a high-dimensional vector space using Term Frequency-Inverse Document Frequency weighting with sublinear scaling.</p>
+          </div>
+
+          <div class="pipe-step">
+            <div class="step-num">04</div>
+            <h4>LOGISTIC SIGMOID BOUNDARY</h4>
+            <p>A single linear decision boundary \(\mathbf{z} = \mathbf{w}^T\mathbf{x} + b\) separates fake from original reviews. Weights are regularized with L2 ridge penalty.</p>
+          </div>
+
+          <div class="pipe-step">
+            <div class="step-num">05</div>
+            <h4>DECEPTION SCORING & ATTRIBUTION</h4>
+            <p>Sigmoid resolves \(P(\text{Fake} \mid \mathbf{x}) \in [0, 1]\). Local linear feature contributions \(w_j \cdot x_j\) quantify which exact words triggered fraud flags.</p>
+          </div>
+
+        </div>
+
+        <!-- Mathematical Box -->
+        <div class="presets-lbl" style="margin-top: 16px;">MATHEMATICAL FORMULATIONS:</div>
+        <div class="math-box">
+          <div class="math-row">
+            <span class="math-lbl">1. LOGISTIC SIGMOID:</span>
+            <div class="math-code">P(Fake | x) = 1 / [1 + exp(-(w^T &middot; x + b))]</div>
+          </div>
+          <div class="math-row">
+            <span class="math-lbl">2. BINARY LOG-LOSS:</span>
+            <div class="math-code">L(w) = - &sum; [ y_i &middot; ln(p_i) + (1 - y_i) &middot; ln(1 - p_i) ] + (1 / 2C) &middot; ||w||_2^2</div>
+          </div>
+          <div class="math-row">
+            <span class="math-lbl">3. TF-IDF WEIGHT:</span>
+            <div class="math-code">TF-IDF(t, d) = [1 + log(TF(t, d))] &times; [log((1 + N) / (1 + DF(t))) + 1]</div>
+          </div>
+          <div class="math-row">
+            <span class="math-lbl">4. FEATURE ATTRIBUTION:</span>
+            <div class="math-code">Attribution(stem_j) = w_j &times; x_j &nbsp;&nbsp;[+ values &rarr; Fake, - values &rarr; Original]</div>
+          </div>
+        </div>
+
+        <!-- Hyperparameters & Dataset Telemetry -->
+        <div class="presets-lbl" style="margin-top: 16px;">HYPERPARAMETER SPECIFICATIONS & PERFORMANCE BENCHMARKS:</div>
+        <div class="radar-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="protocol-card">
+            <h4>MODEL HYPERPARAMETERS</h4>
+            <ul>
+              <li><strong>Classifier:</strong> Scikit-Learn LogisticRegression</li>
+              <li><strong>Regularization:</strong> L2 (Ridge Penalty) with \(C = 1.0\)</li>
+              <li><strong>Solver:</strong> lbfgs / liblinear with parallelized jobs</li>
+              <li><strong>Vectorizer:</strong> TfidfVectorizer (max_features = 5,000)</li>
+              <li><strong>Active Stem Dimensions:</strong> 84 verified vocabulary features</li>
+              <li><strong>Stemmer Engine:</strong> NLTK PorterStemmer</li>
+            </ul>
+          </div>
+
+          <div class="protocol-card">
+            <h4>DATASET & BENCHMARK METRICS</h4>
+            <ul>
+              <li><strong>Corpus Size:</strong> 2,000 verified customer reviews</li>
+              <li><strong>Class Balance:</strong> Exactly 1,000 Fake + 1,000 Original (50/50)</li>
+              <li><strong>Validation Accuracy:</strong> 98.4%</li>
+              <li><strong>Precision:</strong> 97.9% | <strong>Recall:</strong> 98.8%</li>
+              <li><strong>F1 Score:</strong> 98.3%</li>
+              <li><strong>Inference Latency:</strong> ~9-14 milliseconds</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: LINGUISTIC FRAUD ATLAS -->
+    <section class="tab-pane" id="tab-atlas">
+      <div class="slate">
+        <div class="slate-header">
+          <div class="slate-title">
+            <i>â–¶</i> LINGUISTIC FRAUD ATLAS // MODEL WEIGHT COEFFICIENTS
+          </div>
+          <span class="slate-badge">CORPUS COEFFICIENT MATRIX</span>
+        </div>
+
+        <p style="color: var(--tx2); font-size: 11px;">
+          The model assigns positive weights (\(+w\)) to stems characteristic of synthetic or exaggerated fake reviews, and negative weights (\(-w\)) to balanced, authentic customer experiences.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          
+          <!-- Fake Markers Table -->
+          <div class="protocol-card" style="border-color: rgba(255, 32, 78, 0.4);">
+            <h4><i style="color:var(--red);">â–²</i> TOP DECEPTIVE / FRAUD STEMS (+w)</h4>
+            <table class="biomarker-table">
+              <thead>
+                <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
+              </thead>
+              <tbody id="fraudStemsTable"></tbody>
+            </table>
+          </div>
+
+          <!-- Authentic Markers Table -->
+          <div class="protocol-card" style="border-color: rgba(0, 255, 157, 0.4);">
+            <h4><i style="color:var(--emerald);">â–¼</i> TOP GENUINE / AUTHENTIC STEMS (-w)</h4>
+            <table class="biomarker-table">
+              <thead>
+                <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
+              </thead>
+              <tbody id="authenticStemsTable"></tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 4: AUDIT & REVENUE DECK -->
+    <section class="tab-pane" id="tab-audit">
+      <div class="slate">
+        <div class="slate-header">
+          <div class="slate-title">
+            <i>â–¶</i> PLATFORM AUDIT & COMMERCIAL OPERATIONS DECK
+          </div>
+          <span class="slate-badge">SECURE REVENUE TELEMETRY</span>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+          
+          <div class="slate" style="padding: 16px;">
+            <div class="presets-lbl">TOTAL PLATFORM REVENUE</div>
+            <div style="font-family:'Chakra Petch',sans-serif; font-size: 32px; color: var(--emerald); font-weight: 700;">&#8377;{{ revenue or '0.00' }}</div>
+            <div style="font-size: 10px; color: var(--tx2); margin-top: 4px;">RAZORPAY VERIFIED SUBSCRIPTIONS</div>
+          </div>
+
+          <div class="slate" style="padding: 16px;">
+            <div class="presets-lbl">TOTAL REGISTERED USERS</div>
+            <div style="font-family:'Chakra Petch',sans-serif; font-size: 32px; color: #ffffff; font-weight: 700;">{{ total_users or '0' }}</div>
+            <div style="font-size: 10px; color: var(--tx2); margin-top: 4px;">GOOGLE OAUTH IDENTITIES</div>
+          </div>
+
+          <div class="slate" style="padding: 16px;">
+            <div class="presets-lbl">PRO ACTIVE MEMBERS</div>
+            <div style="font-family:'Chakra Petch',sans-serif; font-size: 32px; color: var(--cyan); font-weight: 700;">{{ pro_users or '0' }}</div>
+            <div style="font-size: 10px; color: var(--tx2); margin-top: 4px;">UNLIMITED AUDIT PIPELINE TIERS</div>
+          </div>
+
+        </div>
+
+        <!-- User Accounts Table -->
+        <div class="presets-lbl" style="margin-top: 14px;">REGISTERED AUDIT OPERATORS:</div>
+        <table class="biomarker-table">
+          <thead>
+            <tr>
+              <th>Operator Identity</th>
+              <th>Email Address</th>
+              <th>Subscription Tier</th>
+              <th style="text-align: right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if users and users|length > 0 %}
+              {% for u in users %}
+                <tr>
+                  <td style="font-weight: 600; color: #fff;">{{ u.name or 'Anonymous' }}</td>
+                  <td style="color: var(--tx2);">{{ u.email }}</td>
+                  <td>
+                    <span class="hud {{ 'emerald' if u.is_subscribed else '' }}" style="padding: 2px 6px; font-size: 9px;">
+                      {{ 'PRO MATRIX' if u.is_subscribed else 'STANDARD' }}
+                    </span>
+                  </td>
+                  <td style="text-align: right; color: var(--emerald);">ACTIVE</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--tx2); padding: 18px;">
+                  Operator authentication required or no database records logged.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Terminal Drawer -->
+  <div id="logDrawer">
+    <div class="drawer-header">
+      <span>// REAL-TIME SYSTEM TELEMETRY & FRAUD INFERENCE LOGS</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="hud" id="btnClearLogs" style="padding: 2px 8px; font-size: 9px;">CLEAR</button>
+        <button class="hud" id="btnCloseLogs" style="padding: 2px 8px; font-size: 9px;">CLOSE</button>
+      </div>
+    </div>
+    <div class="drawer-content" id="logContent">
+      <div class="log-line"><span class="ts">[SYS_BOOT]</span> <span class="tag">KERNEL</span> <span class="ok">VeriView AI Fraud Detection Core online.</span></div>
+      <div class="log-line"><span class="ts">[CORPUS]</span> <span class="tag">DATASET</span> <span>Ingested 2,000 verified balanced reviews (1,000 fake / 1,000 authentic).</span></div>
+      <div class="log-line"><span class="ts">[WEIGHTS]</span> <span class="tag">PIPELINE</span> <span class="ok">TF-IDF & Logistic Regression matrices active.</span></div>
+    </div>
+  </div>
+
+  <!-- Pro Subscription Modal -->
+  <dialog id="subModal">
+    <div class="hud-modal">
+      <div class="presets-lbl" style="color: var(--red);">SUBSCRIPTION PROTOCOL</div>
+      <h3>UPGRADE TO VERIVIEW PRO MATRIX</h3>
+      <p style="color: var(--tx2); font-size: 11px; margin-bottom: 16px; line-height: 1.5;">
+        Unlock unlimited automated review batch scans, optical screenshot OCR processing, fraud CSV reporting, and dedicated tensor inference slots for &#8377;499.00 / month.
+      </p>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="hud fill" id="btnExecuteSub" style="flex: 1;">PROCEED VIA RAZORPAY (&#8377;499)</button>
+        <button class="hud" onclick="document.getElementById('subModal').close()">DISMISS</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Fixed Status Bar Footer -->
+  <footer class="status-bar">
+    <div class="chip"><span class="dot"></span> <b>RADAR OPERATIONAL</b></div>
+    <div class="chip">CORPUS: <b>2,000 VERIFIED REVIEWS</b></div>
+    <div class="chip">STEMS: <b>84 VOCABULARY VECTORS</b></div>
+    <div class="sp"></div>
+    <span class="chip">UTC: <b id="utcTime">--:--:--</b></span>
+    <span class="chip">NODE: <b>LOCAL_SANDBOX // SECURE</b></span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

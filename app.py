@@ -14,7 +14,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import DB and Model
 from models import db, User, Payment
-from model import predict_review
+from model import predict_review, predict_review_detailed, get_fake_review_model_architecture
 
 # --- SETUP LOGGING ---
 logging.basicConfig(level=logging.INFO)
@@ -200,35 +200,55 @@ def verify_payment():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/model/architecture', methods=['GET'])
+def model_architecture():
+    """Returns deep neural and mathematical telemetry of the review fraud model"""
+    details = get_fake_review_model_architecture()
+    return jsonify(details)
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Returns runtime auth and user profile configuration"""
+    return jsonify({
+        'user': {
+            'name': current_user.name,
+            'email': current_user.email,
+            'profile_pic': current_user.profile_pic,
+            'is_subscribed': current_user.is_subscribed,
+            'is_admin': (current_user.email == ADMIN_EMAIL_ADDRESS)
+        } if current_user.is_authenticated else None
+    })
+
 @app.route('/predict', methods=['POST'])
-@login_required
 def predict():
     review_text = ""
     try:
-        if 'text_input' in request.form and request.form['text_input'].strip():
-            review_text = request.form['text_input']
+        if request.is_json:
+            json_data = request.get_json() or {}
+            review_text = json_data.get('text_input', '').strip()
+        elif 'text_input' in request.form and request.form['text_input'].strip():
+            review_text = request.form['text_input'].strip()
         elif 'file_input' in request.files:
             file = request.files['file_input']
             if file and file.filename.endswith('.txt'):
-                review_text = file.read().decode('utf-8', errors='ignore')
+                review_text = file.read().decode('utf-8', errors='ignore').strip()
         elif 'image_input' in request.files:
             file = request.files['image_input']
             if file:
                 img = Image.open(file.stream)
-                review_text = pytesseract.image_to_string(img)
+                review_text = pytesseract.image_to_string(img).strip()
         
-        if not review_text.strip():
-            return jsonify({'error': 'No text extracted.'}), 400
+        if not review_text:
+            return jsonify({'status': 'error', 'error': 'No textual content extracted from input.'}), 400
 
-        prediction = predict_review(review_text)
-        
-        return jsonify({
-            'prediction': prediction,
-            'extracted_text': review_text[:300] + "..." if len(review_text) > 300 else review_text
-        })
+        result = predict_review_detailed(review_text)
+        result['extracted_text'] = review_text[:500] + ("..." if len(review_text) > 500 else "")
+        result['authenticated'] = current_user.is_authenticated
+
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Prediction Crash: {e}")
-        return jsonify({'error': f"Processing Error: {str(e)}"}), 500
+        return jsonify({'status': 'error', 'error': f"Processing Error: {str(e)}"}), 500
 
 # --- SAFE DB CREATION ---
 with app.app_context():
