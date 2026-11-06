@@ -373,8 +373,18 @@
         </div>
 
         <p style="color: var(--tx2); font-size: 11px;">
-          The model assigns positive weights (\(+w\)) to stems characteristic of synthetic or exaggerated fake reviews, and negative weights (\(-w\)) to balanced, authentic customer experiences.
+          The model assigns positive weights (\(+w\)) to stems characteristic of synthetic or exaggerated fake reviews, and negative weights (\(-w\)) to balanced, authentic customer experiences. Drag or rotate through verified audit cases in 3D perspective below.
         </p>
+
+        <!-- 3D Cylindrical Stage -->
+        <div class="carousel-controls">
+          <button class="hud" id="btnPrevCase"><i>â—€</i> PREV CASE</button>
+          <span class="chip" style="color:var(--tx2);">3D DRAG / ROTATION STAGE &bull; CLICK ANY CASE SLATE TO LOAD IN RADAR</span>
+          <button class="hud" id="btnNextCase">NEXT CASE <i>â–¶</i></button>
+        </div>
+        <div class="stage-container" id="stageContainer">
+          <div class="cards-ring" id="cardsRing"></div>
+        </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           
