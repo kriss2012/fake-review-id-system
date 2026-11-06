@@ -33,31 +33,55 @@
   --bd: #1c2736;
   --bd-light: #2c3c50;
   --bd-red: #ff204e;
+  /* Universal Fluid Spacing & Dimensions */
+  --container-max: 1440px;
+  --gutter: clamp(10px, 3vw, 24px);
+  --nav-height: 56px;
+  --touch-min: 44px;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html {
+  min-width: 320px;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
-  min-height: 100%;
   background: radial-gradient(130% 95% at 50% 42%, #0a111a, var(--bg));
   color: var(--tx);
   font-family: "Share Tech Mono", ui-monospace, monospace;
-  font-size: 13px;
+  font-size: clamp(12px, 1.1vw, 13px);
   line-height: 1.5;
   overflow-x: hidden;
   user-select: text;
 }
 
+img, svg, canvas {
+  max-width: 100%;
+  display: block;
+}
+
 button, input, textarea, select {
   font-family: inherit;
   color: inherit;
+  font-size: inherit;
 }
-button { cursor: pointer; }
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
 a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
 .dim { color: var(--tx2); }
@@ -238,47 +262,58 @@ button.hud:hover, a.hud:hover {
 }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
-/* App Frame */
+/* App Frame Container */
 .app-frame {
   position: relative;
   z-index: 10;
   min-height: 100vh;
-  padding: 80px 24px 70px;
-  max-width: 1540px;
+  min-height: 100dvh;
+  padding-top: calc(var(--nav-height) + 20px);
+  padding-bottom: clamp(60px, 10vh, 80px);
+  padding-inline: var(--gutter);
+  max-width: var(--container-max);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
-/* Top Navigation */
+/* ==========================================================================
+   TOP NAVIGATION BAR (RESPONSIVE ARCHITECTURE)
+   ========================================================================== */
 .top-nav {
   position: fixed;
-  top: 12px;
-  left: 20px;
-  right: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
   display: flex;
   align-items: center;
-  gap: 14px;
-  z-index: 30;
-  background: rgba(8, 12, 18, 0.94);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--bd);
-  padding: 8px 16px;
+  justify-content: space-between;
+  gap: 10px;
+  z-index: 40;
+  background: rgba(8, 12, 18, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--bd);
+  padding: 0 clamp(12px, 3vw, 24px);
+  padding-top: env(safe-area-inset-top, 0);
 }
 .top-nav::before {
   content: "";
   position: absolute;
   top: -1px;
-  left: -1px;
-  width: 24px;
+  left: 0;
+  width: 32px;
   height: 2px;
   background: var(--red);
 }
+
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 .brand-emblem {
   width: 28px;
@@ -288,6 +323,7 @@ button.hud:hover, a.hud:hover {
   place-items: center;
   background: var(--red-dim);
   box-shadow: 0 0 10px var(--red-glow);
+  flex-shrink: 0;
 }
 .brand-emblem svg {
   width: 16px;
@@ -296,39 +332,41 @@ button.hud:hover, a.hud:hover {
 }
 .brand-title {
   font-family: "Chakra Petch", sans-serif;
-  letter-spacing: 0.22em;
-  font-size: 16px;
+  letter-spacing: 0.18em;
+  font-size: clamp(13px, 1.6vw, 16px);
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 700;
 }
 .brand-title small {
   color: var(--red);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 8px;
+  letter-spacing: 0.12em;
   border: 1px solid var(--red);
-  padding: 1px 6px;
+  padding: 1px 5px;
   background: var(--red-dim);
 }
 
 .telemetry-strip {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-left: 20px;
+  gap: 12px;
+  margin-left: 12px;
   border-left: 1px solid var(--bd);
-  padding-left: 20px;
+  padding-left: 14px;
+  overflow: hidden;
 }
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: var(--tx2);
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .chip .dot {
   width: 6px;
@@ -337,6 +375,7 @@ button.hud:hover, a.hud:hover {
   background: var(--emerald);
   box-shadow: 0 0 8px var(--emerald);
   animation: blink 2s infinite;
+  flex-shrink: 0;
 }
 .chip b { color: var(--tx); }
 @keyframes blink { 50% { opacity: 0.3; } }
@@ -344,8 +383,80 @@ button.hud:hover, a.hud:hover {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Mobile Menu Button */
+.btn-menu-toggle {
+  display: none;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-family: "Chakra Petch", sans-serif;
+  letter-spacing: 0.14em;
+  gap: 6px;
+}
+
+/* Mobile Slide-down HUD Drawer */
+.mobile-nav-drawer {
+  display: none;
+  position: fixed;
+  top: var(--nav-height);
+  left: 0;
+  right: 0;
+  background: rgba(6, 9, 14, 0.98);
+  border-bottom: 1px solid var(--bd-light);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 16px;
+  z-index: 39;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+  animation: slideDown 0.25s ease;
+}
+.mobile-nav-drawer.open {
+  display: flex;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mobile-nav-drawer .drawer-telemetry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bd);
+}
+.mobile-nav-drawer .drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobile-nav-drawer .hud {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Responsive Navigation Breakpoints */
+@media (max-width: 1120px) {
+  .telemetry-strip {
+    display: none; /* Collapsed on tablet/mobile */
+  }
+}
+@media (max-width: 768px) {
+  .nav-actions .hud:not(.btn-menu-toggle) {
+    display: none; /* Moved into mobile drawer */
+  }
+  .brand-title small { display: none; }
+  .btn-menu-toggle { display: inline-flex; }
+}
+@media (max-width: 480px) {
+  .brand-title { font-size: 12px; letter-spacing: 0.12em; }
+  .brand-emblem { width: 24px; height: 24px; }
+  .hud { font-size: 10px; padding: 6px 10px; }
 }
 
 /* Mode Bar */
