@@ -12,6 +12,9 @@
 </head>
 <body>
 
+  <!-- Custom Targeting Reticle Cursor -->
+  <div id="ret"></div>
+
   <!-- Deep Space Starfield & Halo Canvas -->
   <canvas id="spaceCanvas"></canvas>
   <div class="grid-overlay"></div>
@@ -60,8 +63,8 @@
         <div class="chip">OPERATOR: <b>{{ user.name or 'ANONYMOUS' }}</b></div>
         <a href="/logout" class="hud" style="color:var(--red);">LOGOUT</a>
       {% else %}
-        <button class="hud fill" id="btnUpgradePro">PRO UPGRADE</button>
-        <a href="/login" class="hud">OPERATOR SIGN IN</a>
+        <button class="hud" id="btnUpgradePro">PRO UPGRADE</button>
+        <button class="hud fill" id="btnOpenAuthModal">OPERATOR SIGN IN</button>
       {% endif %}
     </div>
   </header>
@@ -490,6 +493,79 @@
       <div class="log-line"><span class="ts">[WEIGHTS]</span> <span class="tag">PIPELINE</span> <span class="ok">TF-IDF & Logistic Regression matrices active.</span></div>
     </div>
   </div>
+
+  <!-- Cyber HUD Operator Authentication Modal -->
+  <dialog id="authModal">
+    <div class="hud-modal">
+      <div class="presets-lbl" style="color: var(--cyan);">SECURITY PROTOCOL // AUDITOR AUTHENTICATION</div>
+      <h3>VERIVIEW ACCESS CONTROL</h3>
+      <p style="color: var(--tx2); font-size: 11px; margin-bottom: 14px; line-height: 1.5;">
+        Select an instant 1-click verification tier, enroll a new security auditor, or authenticate via email & passkey.
+      </p>
+
+      <!-- 1-Click Instant Demo Options -->
+      <div style="background: rgba(14, 20, 29, 0.75); border: 1px solid var(--bd); padding: 12px; margin-bottom: 14px;">
+        <span class="presets-lbl" style="color: var(--emerald); display: block; margin-bottom: 8px;">FAST DIRECT ACCESS (1-CLICK INSTANT PASS):</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="hud emerald" id="btnDemoAuditor" style="flex: 1; justify-content: center;">
+            <span>ðŸ”¬ SENIOR AUDITOR (PRO)</span>
+          </button>
+          <button class="hud" id="btnDemoAdmin" style="flex: 1; justify-content: center; color: var(--amber); border-color: var(--amber);">
+            <span>ðŸ›¡ï¸  CHIEF SECURITY OFFICER</span>
+          </button>
+          <button class="hud" id="btnDemoGuest" style="flex: 1; justify-content: center;">
+            <span>ðŸ‘¤ INVESTIGATOR</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Auth Modality Tabs (Sign In vs Register) -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--bd); padding-bottom: 8px;">
+        <button class="hud fill" id="tabSignInBtn" style="flex: 1; justify-content: center;">SIGN IN</button>
+        <button class="hud" id="tabRegisterBtn" style="flex: 1; justify-content: center;">REGISTER AUDITOR</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="authSignInPane">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label class="presets-lbl">AUDITOR EMAIL:</label>
+            <input type="email" id="authEmail" class="hud" style="width: 100%; text-transform: none; font-size: 12px; background: rgba(4, 7, 12, 0.9);" placeholder="auditor@fraud-radar.ai">
+          </div>
+          <div>
+            <label class="presets-lbl">SECURITY PASSKEY:</label>
+            <input type="password" id="authPassword" class="hud" style="width: 100%; text-transform: none; font-size: 12px; background: rgba(4, 7, 12, 0.9);" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+          </div>
+          <button class="hud fill" id="btnSubmitLogin" style="margin-top: 8px; justify-content: center;">AUTHENTICATE AUDITOR &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="authRegisterPane" hidden>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label class="presets-lbl">AUDITOR NAME / TITLE:</label>
+            <input type="text" id="regName" class="hud" style="width: 100%; text-transform: none; font-size: 12px; background: rgba(4, 7, 12, 0.9);" placeholder="Alex Mercer">
+          </div>
+          <div>
+            <label class="presets-lbl">AUDITOR EMAIL:</label>
+            <input type="email" id="regEmail" class="hud" style="width: 100%; text-transform: none; font-size: 12px; background: rgba(4, 7, 12, 0.9);" placeholder="alex.mercer@fraud-radar.ai">
+          </div>
+          <div>
+            <label class="presets-lbl">SECURITY PASSKEY:</label>
+            <input type="password" id="regPassword" class="hud" style="width: 100%; text-transform: none; font-size: 12px; background: rgba(4, 7, 12, 0.9);" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+          </div>
+          <button class="hud fill" id="btnSubmitRegister" style="margin-top: 8px; justify-content: center; background: var(--cyan); border-color: var(--cyan); color: #000;">ENROLL AUDITOR &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Optional Google OAuth Link -->
+      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--bd); display: flex; align-items: center; justify-content: space-between;">
+        <a href="/login" class="chip" style="color: var(--tx2); text-decoration: underline;">OR AUTHENTICATE VIA GOOGLE OAUTH</a>
+        <button class="hud" onclick="document.getElementById('authModal').close()">CANCEL</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Pro Subscription Modal -->
   <dialog id="subModal">

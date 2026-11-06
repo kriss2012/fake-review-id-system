@@ -940,3 +940,26 @@ dialog h3 {
   margin-bottom: 8px;
 }
 
+/* Custom Targeting Reticle Cursor */
+#ret {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s ease, height 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  display: none;
+}
+@media (pointer: fine) {
+  #ret { display: block; }
+}
+#ret.big {
+  width: 42px;
+  height: 42px;
+  background: rgba(255, 32, 78, 0.16);
+  box-shadow: 0 0 16px var(--red-glow);
+}
+

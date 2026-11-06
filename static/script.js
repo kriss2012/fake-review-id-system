@@ -489,15 +489,196 @@ async function executeSubscription() {
   }
 }
 
+// --- AUTH MODAL SYSTEM ---
+function openAuthModal() {
+  playBeep(850, 'sine', 0.04, 0.05);
+  const modal = document.getElementById('authModal');
+  if (modal) modal.showModal();
+}
+
+function initAuthHandlers() {
+  const btnOpenAuth = document.getElementById('btnOpenAuthModal');
+  if (btnOpenAuth) btnOpenAuth.onclick = openAuthModal;
+
+  const btnTabSign = document.getElementById('tabSignInBtn');
+  const btnTabReg = document.getElementById('tabRegisterBtn');
+  const paneSign = document.getElementById('authSignInPane');
+  const paneReg = document.getElementById('authRegisterPane');
+
+  if (btnTabSign && btnTabReg) {
+    btnTabSign.onclick = () => {
+      playBeep(800, 'sine', 0.03, 0.03);
+      btnTabSign.classList.add('fill');
+      btnTabReg.classList.remove('fill');
+      paneSign.hidden = false;
+      paneReg.hidden = true;
+    };
+    btnTabReg.onclick = () => {
+      playBeep(800, 'sine', 0.03, 0.03);
+      btnTabReg.classList.add('fill');
+      btnTabSign.classList.remove('fill');
+      paneSign.hidden = true;
+      paneReg.hidden = false;
+    };
+  }
+
+  // 1-Click Instant Demo Access
+  const triggerDemo = async (role) => {
+    playScanSound();
+    addLog("AUTH", `Initiating 1-click instant authentication: role [${role.toUpperCase()}]`);
+    try {
+      const res = await fetch('/auth/instant-demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        addLog("AUTH", `Authenticated as ${data.user.name} (${data.user.email})`, "ok");
+        window.location.reload();
+      } else {
+        alert(data.message || "Authentication failed");
+      }
+    } catch (e) {
+      alert("Demo auth error: " + e.message);
+    }
+  };
+
+  const bAud = document.getElementById('btnDemoAuditor');
+  if (bAud) bAud.onclick = () => triggerDemo('auditor');
+  const bAdm = document.getElementById('btnDemoAdmin');
+  if (bAdm) bAdm.onclick = () => triggerDemo('admin');
+  const bGst = document.getElementById('btnDemoGuest');
+  if (bGst) bGst.onclick = () => triggerDemo('guest');
+
+  // Direct Login
+  const btnSubmitLogin = document.getElementById('btnSubmitLogin');
+  if (btnSubmitLogin) {
+    btnSubmitLogin.onclick = async () => {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value.trim();
+      if (!email || !password) {
+        alert("Please enter auditor email and passkey.");
+        return;
+      }
+      playScanSound();
+      try {
+        const res = await fetch('/auth/direct-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          addLog("AUTH", `Successfully verified auditor: ${data.user.email}`, "ok");
+          window.location.reload();
+        } else {
+          alert(data.message || "Invalid passkey credentials");
+        }
+      } catch (e) {
+        alert("Login error: " + e.message);
+      }
+    };
+  }
+
+  // Direct Register
+  const btnSubmitRegister = document.getElementById('btnSubmitRegister');
+  if (btnSubmitRegister) {
+    btnSubmitRegister.onclick = async () => {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+      if (!email || !password) {
+        alert("Please enter name, email, and passkey.");
+        return;
+      }
+      playScanSound();
+      try {
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          addLog("AUTH", `Enrolled new auditor: ${data.user.name}`, "ok");
+          window.location.reload();
+        } else {
+          alert(data.message || "Registration failed");
+        }
+      } catch (e) {
+        alert("Registration error: " + e.message);
+      }
+    };
+  }
+
+  // Auto open if notice in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('auth_modal') === 'open') {
+    openAuthModal();
+  }
+}
+
+// --- TARGETING RETICLE CURSOR ---
+function initReticle() {
+  const ret = document.getElementById('ret');
+  if (!ret) return;
+
+  window.addEventListener('mousemove', (e) => {
+    ret.style.left = e.clientX + 'px';
+    ret.style.top = e.clientY + 'px';
+  });
+
+  const interactiveSelector = 'button, a, input, textarea, .preset-btn, .dropzone, .modality-btn';
+  document.addEventListener('mouseover', (e) => {
+    if (e.target.closest(interactiveSelector)) {
+      ret.classList.add('big');
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest(interactiveSelector)) {
+      ret.classList.remove('big');
+    }
+  });
+}
+
+// --- EXPORT AUDIT TELEMETRY ---
+function exportAuditReport() {
+  playBeep(940, 'sine', 0.05, 0.06);
+  const logLines = Array.from(document.querySelectorAll('#logContent .log-line')).map(l => l.innerText).join('\n');
+  const report = {
+    system: "VeriView AI Fraud Detection Radar",
+    timestamp: new Date().toISOString(),
+    accuracy: "98.4%",
+    loss_function: "Binary Cross-Entropy (Log-Loss)",
+    regularization: "L2 Ridge (C=1.0)",
+    dataset_records: 2000,
+    active_stems: 84,
+    recent_logs: logLines
+  };
+
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `veriview-audit-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog("AUDIT", "Exported complete fraud audit telemetry file (.json)", "ok");
+}
+
 // --- INITIALIZATION ---
 window.addEventListener('DOMContentLoaded', () => {
   initStarfield();
+  initReticle();
   runBootSequence();
   initTabs();
   initModalities();
   initPresets();
   startUtcClock();
   fetchArchitecture();
+  initAuthHandlers();
 
   // Execution triggers
   document.getElementById('btnAuditReview').onclick = runAudit;
@@ -530,6 +711,9 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnClearLogs').onclick = () => {
     document.getElementById('logContent').innerHTML = '';
   };
+
+  const btnExp = document.getElementById('btnExportLogs');
+  if (btnExp) btnExp.onclick = exportAuditReport;
 
   // Pro Upgrade Button
   const upBtn = document.getElementById('btnUpgradePro');
