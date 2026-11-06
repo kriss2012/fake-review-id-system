@@ -668,6 +668,150 @@ function exportAuditReport() {
   addLog("AUDIT", "Exported complete fraud audit telemetry file (.json)", "ok");
 }
 
+// --- 3D CYLINDRICAL CASE STUDIES CAROUSEL ---
+const CASE_STUDIES = [
+  { id: "CASE_01", type: "fake", title: "Bot Hyperbole", text: "I can't believe how perfect this restaurant is! Best food ever, total miracle overnight!", threat: "99.7%" },
+  { id: "CASE_02", type: "original", title: "Verified Hardware", text: "The headphones arrived on time. The sound is decent and overall it performs well so far.", threat: "0.3%" },
+  { id: "CASE_03", type: "fake", title: "Competitor Slander", text: "Fake restaurant! Complete scam, avoid this place at all costs! Total waste of money!", threat: "98.9%" },
+  { id: "CASE_04", type: "original", title: "Organic Dining", text: "Had dinner here on a Friday. The pasta was good and service was prompt although slightly noisy.", threat: "4.2%" },
+  { id: "CASE_05", type: "fake", title: "Astroturfed Farm", text: "Best product ever made in history! Changed my life completely, five stars without a doubt!", threat: "99.2%" },
+  { id: "CASE_06", type: "original", title: "Balanced Delivery", text: "Package arrived in good condition. Quality matches the price point, satisfied overall.", threat: "1.8%" },
+  { id: "CASE_07", type: "fake", title: "Overnight Miracle", text: "Avoid this terrible device! Fake reviews everywhere, best scam of the decade!", threat: "97.4%" },
+  { id: "CASE_08", type: "original", title: "Technical Review", text: "Battery lasts roughly seven hours with moderate use. The screen calibration is decent.", threat: "5.1%" }
+];
+
+let carouselRotation = 0;
+let carouselRadius = 480;
+let isDraggingCarousel = false;
+let startXCarousel = 0;
+let currentRotationAtDrag = 0;
+
+function initCaseStudiesCarousel() {
+  const ring = document.getElementById('cardsRing');
+  const stage = document.getElementById('stageContainer');
+  if (!ring || !stage) return;
+
+  ring.innerHTML = '';
+  const count = CASE_STUDIES.length;
+  const step = 360 / count;
+
+  CASE_STUDIES.forEach((cs, i) => {
+    const card = document.createElement('div');
+    card.className = `carousel-card ${cs.type === 'original' ? 'is-orig' : ''}`;
+    card.setAttribute('data-index', i);
+
+    card.innerHTML = `
+      <div class="c-num">
+        <span>${cs.id}</span>
+        <small class="hud ${cs.type === 'original' ? 'emerald' : ''}" style="font-size:8px; padding:1px 6px;">${cs.type === 'original' ? 'AUTHENTIC' : 'DECEPTIVE'}</small>
+      </div>
+      <h3>${cs.title}</h3>
+      <p style="color:var(--tx2); font-size:10px; margin:2px 0; max-height:30px; overflow:hidden;">"${cs.text}"</p>
+      <div class="c-meta">
+        <span>PREDICTED THREAT</span>
+        <b style="color:${cs.type === 'original' ? 'var(--emerald)' : 'var(--red)'};">${cs.threat}</b>
+      </div>
+    `;
+
+    card.onclick = (e) => {
+      e.stopPropagation();
+      playBeep(750, 'sine', 0.03, 0.03);
+      rotateToIndex(i);
+      // Inject and analyze
+      document.getElementById('reviewText').value = cs.text;
+      updateTextMetrics();
+      // Switch to radar
+      document.querySelectorAll('.hud-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-tab="tab-radar"]').classList.add('active');
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-radar').classList.add('active');
+      runAudit();
+    };
+
+    ring.appendChild(card);
+  });
+
+  updateCarouselLayout();
+
+  // Drag listeners
+  stage.onmousedown = (e) => {
+    isDraggingCarousel = true;
+    startXCarousel = e.clientX;
+    currentRotationAtDrag = carouselRotation;
+    stage.classList.add('dragging');
+  };
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDraggingCarousel) return;
+    const delta = e.clientX - startXCarousel;
+    carouselRotation = currentRotationAtDrag + delta * 0.28;
+    updateCarouselLayout();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDraggingCarousel) {
+      isDraggingCarousel = false;
+      stage.classList.remove('dragging');
+      const step = 360 / CASE_STUDIES.length;
+      const nearestIdx = Math.round(-carouselRotation / step);
+      rotateToIndex((nearestIdx % CASE_STUDIES.length + CASE_STUDIES.length) % CASE_STUDIES.length);
+    }
+  });
+
+  const btnPrev = document.getElementById('btnPrevCase');
+  const btnNext = document.getElementById('btnNextCase');
+  if (btnPrev) btnPrev.onclick = () => stepCarousel(1);
+  if (btnNext) btnNext.onclick = () => stepCarousel(-1);
+}
+
+function updateCarouselLayout() {
+  const cards = document.querySelectorAll('.carousel-card');
+  if (cards.length === 0) return;
+  const count = cards.length;
+  const step = 360 / count;
+
+  let closestIndex = 0;
+  let minDiff = Infinity;
+
+  cards.forEach((card, i) => {
+    const cardAngle = i * step + carouselRotation;
+    const rad = (cardAngle * Math.PI) / 180;
+    const cosVal = Math.cos(rad);
+
+    card.style.transform = `rotateY(${cardAngle}deg) translateZ(${carouselRadius}px)`;
+    const opacity = Math.max(0.12, (cosVal + 1) / 2);
+    card.style.opacity = opacity;
+    card.style.pointerEvents = cosVal > 0.1 ? 'auto' : 'none';
+
+    let norm = (cardAngle % 360 + 360) % 360;
+    let diff = Math.min(norm, 360 - norm);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIndex = i;
+    }
+  });
+
+  cards.forEach((c, i) => {
+    const isClosest = (i === closestIndex);
+    const isOriginal = CASE_STUDIES[i] && CASE_STUDIES[i].type === 'original';
+    c.classList.toggle('c', isClosest);
+    c.classList.toggle('original', isClosest && isOriginal);
+  });
+}
+
+function rotateToIndex(idx) {
+  const step = 360 / CASE_STUDIES.length;
+  carouselRotation = -idx * step;
+  updateCarouselLayout();
+}
+
+function stepCarousel(dir) {
+  playBeep(820, 'sine', 0.03, 0.03);
+  const step = 360 / CASE_STUDIES.length;
+  carouselRotation += dir * step;
+  updateCarouselLayout();
+}
+
 // --- INITIALIZATION ---
 window.addEventListener('DOMContentLoaded', () => {
   initStarfield();
@@ -676,6 +820,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initModalities();
   initPresets();
+  initCaseStudiesCarousel();
   startUtcClock();
   fetchArchitecture();
   initAuthHandlers();
