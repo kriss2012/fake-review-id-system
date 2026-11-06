@@ -66,8 +66,31 @@
         <button class="hud" id="btnUpgradePro">PRO UPGRADE</button>
         <button class="hud fill" id="btnOpenAuthModal">OPERATOR SIGN IN</button>
       {% endif %}
+      <button class="hud btn-menu-toggle" id="btnMobileMenuToggle" aria-label="Toggle Mobile HUD Menu"><span>MENU</span> <i>☰</i></button>
     </div>
   </header>
+
+  <!-- Mobile Slide-Down HUD Navigation Drawer -->
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="drawer-telemetry">
+      <div class="chip"><span class="dot"></span> MATRIX: <b>ONLINE</b></div>
+      <div class="chip">ACC: <b id="mobAccuracy">98.4%</b></div>
+      <div class="chip">LATENCY: <b id="mobLatency">11.2ms</b></div>
+      <div class="chip">CORPUS: <b>2K</b></div>
+    </div>
+    <div class="drawer-actions">
+      <button class="hud" id="btnMobAudioToggle">AUDIO: <b>OFF</b></button>
+      <button class="hud" id="btnMobLogsToggle">DIAGNOSTIC TERMINAL</button>
+      {% if user and user.is_authenticated %}
+        {% if not user.is_subscribed %}
+          <button class="hud fill" id="btnMobSubUpgrade">UPGRADE PRO (&#8377;499)</button>
+        {% endif %}
+      {% else %}
+        <button class="hud" id="btnMobSubUpgrade">PRO UPGRADE</button>
+        <button class="hud fill" id="btnMobAuthOpen">OPERATOR SIGN IN</button>
+      {% endif %}
+    </div>
+  </div>
 
   <!-- Main Application Frame -->
   <div class="app-frame">
@@ -386,28 +409,32 @@
           <div class="cards-ring" id="cardsRing"></div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="stem-tables-grid">
           
           <!-- Fake Markers Table -->
           <div class="protocol-card" style="border-color: rgba(255, 32, 78, 0.4);">
             <h4><i style="color:var(--red);">â–²</i> TOP DECEPTIVE / FRAUD STEMS (+w)</h4>
-            <table class="biomarker-table">
-              <thead>
-                <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
-              </thead>
-              <tbody id="fraudStemsTable"></tbody>
-            </table>
+            <div class="table-responsive">
+              <table class="biomarker-table">
+                <thead>
+                  <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
+                </thead>
+                <tbody id="fraudStemsTable"></tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Authentic Markers Table -->
           <div class="protocol-card" style="border-color: rgba(0, 255, 157, 0.4);">
             <h4><i style="color:var(--emerald);">â–¼</i> TOP GENUINE / AUTHENTIC STEMS (-w)</h4>
-            <table class="biomarker-table">
-              <thead>
-                <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
-              </thead>
-              <tbody id="authenticStemsTable"></tbody>
-            </table>
+            <div class="table-responsive">
+              <table class="biomarker-table">
+                <thead>
+                  <tr><th>Stem</th><th>Weight</th><th>Diagnostic Correlation</th></tr>
+                </thead>
+                <tbody id="authenticStemsTable"></tbody>
+              </table>
+            </div>
           </div>
 
         </div>
@@ -426,7 +453,7 @@
         </div>
 
         <!-- Metrics Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <div class="audit-metrics-grid">
           
           <div class="slate" style="padding: 16px;">
             <div class="presets-lbl">TOTAL PLATFORM REVENUE</div>
@@ -450,38 +477,40 @@
 
         <!-- User Accounts Table -->
         <div class="presets-lbl" style="margin-top: 14px;">REGISTERED AUDIT OPERATORS:</div>
-        <table class="biomarker-table">
-          <thead>
-            <tr>
-              <th>Operator Identity</th>
-              <th>Email Address</th>
-              <th>Subscription Tier</th>
-              <th style="text-align: right;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if users and users|length > 0 %}
-              {% for u in users %}
-                <tr>
-                  <td style="font-weight: 600; color: #fff;">{{ u.name or 'Anonymous' }}</td>
-                  <td style="color: var(--tx2);">{{ u.email }}</td>
-                  <td>
-                    <span class="hud {{ 'emerald' if u.is_subscribed else '' }}" style="padding: 2px 6px; font-size: 9px;">
-                      {{ 'PRO MATRIX' if u.is_subscribed else 'STANDARD' }}
-                    </span>
-                  </td>
-                  <td style="text-align: right; color: var(--emerald);">ACTIVE</td>
-                </tr>
-              {% endfor %}
-            {% else %}
+        <div class="table-responsive">
+          <table class="biomarker-table">
+            <thead>
               <tr>
-                <td colspan="4" style="text-align: center; color: var(--tx2); padding: 18px;">
-                  Operator authentication required or no database records logged.
-                </td>
+                <th>Operator Identity</th>
+                <th>Email Address</th>
+                <th>Subscription Tier</th>
+                <th style="text-align: right;">Status</th>
               </tr>
-            {% endif %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% if users and users|length > 0 %}
+                {% for u in users %}
+                  <tr>
+                    <td style="font-weight: 600; color: #fff;">{{ u.name or 'Anonymous' }}</td>
+                    <td style="color: var(--tx2);">{{ u.email }}</td>
+                    <td>
+                      <span class="hud {{ 'emerald' if u.is_subscribed else '' }}" style="padding: 2px 6px; font-size: 9px;">
+                        {{ 'PRO MATRIX' if u.is_subscribed else 'STANDARD' }}
+                      </span>
+                    </td>
+                    <td style="text-align: right; color: var(--emerald);">ACTIVE</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" style="text-align: center; color: var(--tx2); padding: 18px;">
+                    Operator authentication required or no database records logged.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
 
       </div>
     </section>
