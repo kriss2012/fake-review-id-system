@@ -376,4 +376,5 @@ with app.app_context():
         logger.error(f"Database creation failed: {e}")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5002))
+    app.run(debug=False, port=port)
