@@ -686,10 +686,25 @@ let isDraggingCarousel = false;
 let startXCarousel = 0;
 let currentRotationAtDrag = 0;
 
+function getResponsiveRadius() {
+  const w = window.innerWidth;
+  if (w < 400) return 170;
+  if (w < 600) return 230;
+  if (w < 900) return 330;
+  if (w < 1200) return 420;
+  return 520;
+}
+
 function initCaseStudiesCarousel() {
   const ring = document.getElementById('cardsRing');
   const stage = document.getElementById('stageContainer');
   if (!ring || !stage) return;
+
+  carouselRadius = getResponsiveRadius();
+  window.addEventListener('resize', () => {
+    carouselRadius = getResponsiveRadius();
+    updateCarouselLayout();
+  });
 
   ring.innerHTML = '';
   const count = CASE_STUDIES.length;
@@ -733,13 +748,20 @@ function initCaseStudiesCarousel() {
 
   updateCarouselLayout();
 
-  // Drag listeners
+  // Mouse & Touch Drag listeners
   stage.onmousedown = (e) => {
     isDraggingCarousel = true;
     startXCarousel = e.clientX;
     currentRotationAtDrag = carouselRotation;
     stage.classList.add('dragging');
   };
+
+  stage.addEventListener('touchstart', (e) => {
+    isDraggingCarousel = true;
+    startXCarousel = e.touches[0].clientX;
+    currentRotationAtDrag = carouselRotation;
+    stage.classList.add('dragging');
+  }, { passive: true });
 
   window.addEventListener('mousemove', (e) => {
     if (!isDraggingCarousel) return;
@@ -748,7 +770,14 @@ function initCaseStudiesCarousel() {
     updateCarouselLayout();
   });
 
-  window.addEventListener('mouseup', () => {
+  window.addEventListener('touchmove', (e) => {
+    if (!isDraggingCarousel) return;
+    const delta = e.touches[0].clientX - startXCarousel;
+    carouselRotation = currentRotationAtDrag + delta * 0.28;
+    updateCarouselLayout();
+  }, { passive: true });
+
+  const endDrag = () => {
     if (isDraggingCarousel) {
       isDraggingCarousel = false;
       stage.classList.remove('dragging');
@@ -756,7 +785,10 @@ function initCaseStudiesCarousel() {
       const nearestIdx = Math.round(-carouselRotation / step);
       rotateToIndex((nearestIdx % CASE_STUDIES.length + CASE_STUDIES.length) % CASE_STUDIES.length);
     }
-  });
+  };
+
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
 
   const btnPrev = document.getElementById('btnPrevCase');
   const btnNext = document.getElementById('btnNextCase');
@@ -873,6 +905,54 @@ window.addEventListener('DOMContentLoaded', () => {
   const execSubBtn = document.getElementById('btnExecuteSub');
   if (execSubBtn) {
     execSubBtn.onclick = executeSubscription;
+  }
+
+  // Mobile Menu Drawer Toggle
+  const mobMenuBtn = document.getElementById('btnMobileMenuToggle');
+  const mobDrawer = document.getElementById('mobileNavDrawer');
+  if (mobMenuBtn && mobDrawer) {
+    mobMenuBtn.onclick = () => {
+      playBeep(750, 'sine', 0.03, 0.03);
+      mobDrawer.classList.toggle('open');
+    };
+  }
+
+  const btnMobAudio = document.getElementById('btnMobAudioToggle');
+  if (btnMobAudio) {
+    btnMobAudio.onclick = () => {
+      soundEnabled = !soundEnabled;
+      const label = `AUDIO: <b>${soundEnabled ? 'ON' : 'OFF'}</b>`;
+      btnMobAudio.innerHTML = label;
+      document.getElementById('btnAudioToggle').innerHTML = label;
+      if (soundEnabled) { initAudio(); playBeep(990, 'sine', 0.06, 0.06); }
+    };
+  }
+
+  const btnMobLogs = document.getElementById('btnMobLogsToggle');
+  if (btnMobLogs) {
+    btnMobLogs.onclick = () => {
+      playBeep(700, 'sine', 0.03, 0.03);
+      if (mobDrawer) mobDrawer.classList.remove('open');
+      document.getElementById('logDrawer').classList.add('open');
+    };
+  }
+
+  const btnMobSub = document.getElementById('btnMobSubUpgrade');
+  if (btnMobSub) {
+    btnMobSub.onclick = () => {
+      if (mobDrawer) mobDrawer.classList.remove('open');
+      const modal = document.getElementById('subModal');
+      if (modal) modal.showModal();
+    };
+  }
+
+  const btnMobAuth = document.getElementById('btnMobAuthOpen');
+  if (btnMobAuth) {
+    btnMobAuth.onclick = () => {
+      if (mobDrawer) mobDrawer.classList.remove('open');
+      const modal = document.getElementById('authModal');
+      if (modal) modal.showModal();
+    };
   }
 });
 
